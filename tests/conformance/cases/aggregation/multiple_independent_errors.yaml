@@ -1,0 +1,17 @@
+# One document carrying four independent violations, each from a different
+# validation pass and none short-circuiting the others. Asserts (via the
+# default exact set match) that the validator accumulates all of them rather
+# than stopping at the first — see tests/conformance/README.md.
+spec_version: "0.0"
+bogus: 1                 # shape: unknown top-level key
+features:
+  - nope                 # features: unknown feature name
+types:
+  state:                 # identifiers: reserved name used as a type name
+    domain: data
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: ghost             # entry: names a non-existent process

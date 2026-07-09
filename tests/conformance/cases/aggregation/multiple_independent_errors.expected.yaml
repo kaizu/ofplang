@@ -1,0 +1,15 @@
+outcome: invalid
+match: exact
+errors:
+  - code: unknown_key
+    path: "bogus"
+  - code: unknown_feature
+    path: "features[0]"
+  - code: reserved_name
+    path: "types.state"
+  - code: unknown_entry_process
+    path: "entry"
+notes: >
+  Exercises multi-error accumulation: four independent violations from four
+  different passes must all be reported together (collect-and-continue), and
+  exact match ensures no extra diagnostics leak in.

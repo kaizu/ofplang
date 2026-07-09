@@ -56,6 +56,7 @@ IMPLEMENTED_CATEGORIES = {
     "contracts",
     "scheduling",
     "references",
+    "aggregation",
 }
 
 
