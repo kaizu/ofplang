@@ -92,10 +92,18 @@ def _render_text(results: list[tuple[str, ValidationResult]], quiet: bool, color
             lines.append(f"{path}:")
         if not quiet:
             for d in result.diagnostics:
-                loc = f" {c(d.path, _DIM)}" if d.path else ""
+                # Prefer a concrete source position as the locator; fall back to
+                # the logical path. When both exist, show the path as a dim
+                # trailing detail (position primary, path for context).
+                if d.location:
+                    locator = d.location
+                    detail = f"  {c(d.path, _DIM)}" if d.path else ""
+                else:
+                    locator = d.path or "<root>"
+                    detail = ""
                 msg = f"  {d.message}" if d.message else ""
                 indent = "  " if multi else ""
-                lines.append(f"{indent}{c('error', _RED)} {d.code}{loc}{msg}")
+                lines.append(f"{indent}{locator}: {c('error', _RED)} {d.code}{detail}{msg}")
 
     if total_errors == 0:
         lines.append(c(f"all valid ({len(results)} file{'s' if len(results) != 1 else ''})", _GREEN))
@@ -116,7 +124,14 @@ def _render_json(results: list[tuple[str, ValidationResult]]) -> str:
                 "file": path,
                 "ok": result.ok,
                 "diagnostics": [
-                    {"code": d.code, "path": d.path, "message": d.message}
+                    {
+                        "code": d.code,
+                        "path": d.path,
+                        "message": d.message,
+                        "file": d.file,
+                        "line": d.line,
+                        "col": d.col,
+                    }
                     for d in result.diagnostics
                 ],
             }

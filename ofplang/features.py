@@ -80,24 +80,24 @@ def check_features(doc: YMap, diags: Diagnostics, mode: str) -> None:
     if features_node is None:
         return
     if not isinstance(features_node, YSeq):
-        diags.add(errors.WRONG_VALUE_KIND, "features must be a sequence", "features")
+        diags.add(errors.WRONG_VALUE_KIND, "features must be a sequence", "features", at=features_node)
         return
 
     # Validate each declared name and collect the declared set.
     declared: set[str] = set()
     for i, item in enumerate(features_node.items):
         if not isinstance(item, YScalar):
-            diags.add(errors.WRONG_VALUE_KIND, "feature must be a string", f"features[{i}]")
+            diags.add(errors.WRONG_VALUE_KIND, "feature must be a string", f"features[{i}]", at=item)
             continue
         name = item.text
         declared.add(name)
         # Extension feature names (x-...) are allowed only in tolerant mode.
         if name.startswith("x-"):
             if mode != EXTENSION_TOLERANT:
-                diags.add(errors.UNKNOWN_FEATURE, f"extension feature {name!r}", f"features[{i}]")
+                diags.add(errors.UNKNOWN_FEATURE, f"extension feature {name!r}", f"features[{i}]", at=item)
             continue
         if name not in V0_FEATURES:
-            diags.add(errors.UNKNOWN_FEATURE, f"unknown feature {name!r}", f"features[{i}]")
+            diags.add(errors.UNKNOWN_FEATURE, f"unknown feature {name!r}", f"features[{i}]", at=item)
 
     # Every required feature must be present in an explicit features section.
     for feat in sorted(required - declared):
@@ -105,4 +105,5 @@ def check_features(doc: YMap, diags: Diagnostics, mode: str) -> None:
             errors.MISSING_REQUIRED_FEATURE,
             f"required feature {feat!r} is missing from features",
             "features",
+            at=features_node,
         )

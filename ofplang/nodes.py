@@ -92,6 +92,7 @@ def _check_carry_compat(
                 errors.CARRY_OUTPUT_MISSING,
                 f"carry {cname!r} has no matching output on target process",
                 f"{base}.nodes.{nid}.carry.{cname}",
+                at=node,
             )
 
 
@@ -107,7 +108,7 @@ def _check_zip(diags: Diagnostics, node: YMap, nid: str, base: str) -> None:
     """
     lengths, _ = _each_literal_lengths(node)
     if len(set(lengths)) > 1:
-        diags.add(errors.ZIP_MISMATCH, "each sources have unequal literal lengths", f"{base}.nodes.{nid}")
+        diags.add(errors.ZIP_MISMATCH, "each sources have unequal literal lengths", f"{base}.nodes.{nid}", at=node)
 
 
 def _check_fold_outputs(
@@ -128,6 +129,7 @@ def _check_fold_outputs(
                     errors.OBJECT_OUTPUT_BAD_MODE,
                     f"Object output {oname!r} cannot use last/drop",
                     f"{base}.nodes.{nid}.{oname}",
+                    at=node,
                 )
     else:
         # With outputs omitted, a non-carry Object output has no way to be
@@ -137,6 +139,7 @@ def _check_fold_outputs(
                 errors.NONCARRY_OBJECT_OUTPUT_UNLISTED,
                 f"non-carry Object output {oname!r} needs an explicit collect",
                 f"{base}.nodes.{nid}.{oname}",
+                at=node,
             )
 
     # Empty-traversal + mode:last is invalid when emptiness is graph-known (18.2).
@@ -144,7 +147,7 @@ def _check_fold_outputs(
     empty_known = all_literal and lengths and all(x == 0 for x in lengths)
     if empty_known and isinstance(outputs, YMap):
         if any(_mode_of(outputs.get(o)) == "last" for o in outputs.keys()):
-            diags.add(errors.LAST_ON_EMPTY_FOLD, "mode: last on a graph-empty traversal", f"{base}.nodes.{nid}")
+            diags.add(errors.LAST_ON_EMPTY_FOLD, "mode: last on a graph-empty traversal", f"{base}.nodes.{nid}", at=node)
 
 
 def _check_do_while_outputs(
@@ -158,6 +161,7 @@ def _check_do_while_outputs(
             errors.NONCARRY_OBJECT_OUTPUT_IN_DO_WHILE,
             f"do_while forbids non-carry Object output {oname!r}",
             f"{base}.nodes.{nid}.{oname}",
+            at=node,
         )
 
     # condition.output must name a Boolean Data output of the target (spec 19).
@@ -173,6 +177,7 @@ def _check_do_while_outputs(
                     errors.BAD_CONDITION_OUTPUT,
                     f"condition.output {cname!r} is not a Boolean output",
                     f"{base}.nodes.{nid}.condition",
+                    at=out_node,
                 )
 
 
@@ -219,6 +224,7 @@ def _check_branch(
             errors.ONE_SIDED_OBJECT_OUTPUT,
             f"Object-bearing output {name!r} is not common to both arms",
             f"{base}.nodes.{nid}.{name}",
+            at=node,
         )
 
     # Identity-equivalence for outputs common to both arms (spec 20.2): each arm
@@ -241,6 +247,7 @@ def _check_branch(
                     errors.BRANCH_NOT_IDENTITY_EQUIVALENT,
                     f"common Object output {name!r} is not identity-equivalent across arms",
                     f"{base}.nodes.{nid}.{name}",
+                    at=node,
                 )
 
 
@@ -287,6 +294,7 @@ def check_nodes(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None
                         errors.MISSING_MAX_ITERATIONS,
                         "do_while requires max_iterations",
                         f"{base}.nodes.{nid}",
+                        at=item,
                     )
                 if target is not None:
                     _check_carry_compat(diags, item, nid, target, base)

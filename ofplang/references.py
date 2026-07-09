@@ -138,7 +138,7 @@ def _check_composite(
         has_value = entry.get("value") is not None
         # Exactly one of from/value (spec 2.6.6).
         if has_from == has_value:  # both present, or both absent
-            diags.add(errors.BINDING_SOURCE_ARITY, "source needs exactly one of from/value", path)
+            diags.add(errors.BINDING_SOURCE_ARITY, "source needs exactly one of from/value", path, at=entry)
             return
         if not has_from:
             return  # a literal `value`: no reference to resolve
@@ -147,10 +147,10 @@ def _check_composite(
             return
         ref = _parse_ref(frm.text)
         if ref is None:
-            diags.add(errors.MALFORMED_REFERENCE, f"malformed reference {frm.text!r}", path)
+            diags.add(errors.MALFORMED_REFERENCE, f"malformed reference {frm.text!r}", path, at=frm)
             return
         if not _resolves(ref):
-            diags.add(errors.UNKNOWN_REFERENCE, f"unresolved reference {frm.text!r}", path)
+            diags.add(errors.UNKNOWN_REFERENCE, f"unresolved reference {frm.text!r}", path, at=frm)
             return
         # Phase-flow: source phase must be earlier-or-equal to the target port.
         if target_input_phase is not None:
@@ -197,7 +197,7 @@ def _check_composite(
                     if isinstance(frm, YScalar):
                         ref = _parse_ref(frm.text)
                         if ref and _resolves(ref) and _source_object_bearing(ref, sig, nodes_by_id, sigs):
-                            diags.add(errors.OBJECT_VIA_BIND, "Object-bearing value passed through bind", epath)
+                            diags.add(errors.OBJECT_VIA_BIND, "Object-bearing value passed through bind", epath, at=frm)
 
         # A branch condition is itself a body dataflow reference.
         if kind == "branch":
@@ -207,9 +207,9 @@ def _check_composite(
                 if isinstance(frm, YScalar):
                     ref = _parse_ref(frm.text)
                     if ref is None:
-                        diags.add(errors.MALFORMED_REFERENCE, "malformed condition reference", f"{base}.nodes.{nid}.condition")
+                        diags.add(errors.MALFORMED_REFERENCE, "malformed condition reference", f"{base}.nodes.{nid}.condition", at=frm)
                     elif not _resolves(ref):
-                        diags.add(errors.UNKNOWN_REFERENCE, f"unresolved condition {frm.text!r}", f"{base}.nodes.{nid}.condition")
+                        diags.add(errors.UNKNOWN_REFERENCE, f"unresolved condition {frm.text!r}", f"{base}.nodes.{nid}.condition", at=frm)
 
         # Node input indegree, ordinary nodes only: every target input port must
         # be bound exactly once via state (Object) or bind (Pure Data).
@@ -222,10 +222,10 @@ def _check_composite(
                         count += 1
                 if count == 0:
                     code = errors.OBJECT_INPUT_NO_SOURCE if isig.object_bearing else errors.DATA_INDEGREE
-                    diags.add(code, f"input {iname!r} has no source", f"{base}.nodes.{nid}.{iname}")
+                    diags.add(code, f"input {iname!r} has no source", f"{base}.nodes.{nid}.{iname}", at=node)
                 elif count > 1:
                     code = errors.OBJECT_INPUT_MULTI_SOURCE if isig.object_bearing else errors.DATA_INDEGREE
-                    diags.add(code, f"input {iname!r} has multiple sources", f"{base}.nodes.{nid}.{iname}")
+                    diags.add(code, f"input {iname!r} has multiple sources", f"{base}.nodes.{nid}.{iname}", at=node)
 
     # returns entries are body dataflow references too.
     returns = body.get("returns")
@@ -237,9 +237,9 @@ def _check_composite(
                 if isinstance(frm, YScalar):
                     ref = _parse_ref(frm.text)
                     if ref is None:
-                        diags.add(errors.MALFORMED_REFERENCE, "malformed return reference", f"{base}.returns.{rname}")
+                        diags.add(errors.MALFORMED_REFERENCE, "malformed return reference", f"{base}.returns.{rname}", at=frm)
                     elif not _resolves(ref):
-                        diags.add(errors.UNKNOWN_REFERENCE, f"unresolved return {frm.text!r}", f"{base}.returns.{rname}")
+                        diags.add(errors.UNKNOWN_REFERENCE, f"unresolved return {frm.text!r}", f"{base}.returns.{rname}", at=frm)
 
 
 def check_references(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None:

@@ -34,18 +34,20 @@ def check_entry(doc: YNode, diags: Diagnostics) -> None:
                 errors.NO_ENTRY_PROCESS,
                 "no 'entry' and no process named 'main'",
                 "entry",
+                at=doc,
             )
         return
 
     # Explicit form: must be a scalar naming an existing process.
     if not isinstance(entry_node, YScalar):
-        diags.add(errors.WRONG_VALUE_KIND, "entry must be a string", "entry")
+        diags.add(errors.WRONG_VALUE_KIND, "entry must be a string", "entry", at=entry_node)
         return
     if entry_node.text not in process_names:
         diags.add(
             errors.UNKNOWN_ENTRY_PROCESS,
             f"entry names unknown process {entry_node.text!r}",
             "entry",
+            at=entry_node,
         )
 
 
@@ -122,5 +124,6 @@ def check_process_dependencies(doc: YNode, diags: Diagnostics) -> None:
                 errors.RECURSIVE_PROCESS_DEPENDENCY,
                 "process dependency graph contains a cycle",
                 "processes",
+                at=processes,
             )
             return

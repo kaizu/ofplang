@@ -207,6 +207,7 @@ def _check_instantiations(
                         errors.CONSTRAINT_NOT_SATISFIED,
                         f"{cname} does not satisfy {trait}<{param}>",
                         f"processes.{pname}.body.nodes.{node.get('id').text}",
+                        at=node,
                     )
 
 
@@ -234,6 +235,7 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, 
                     errors.TYPE_PARAM_SHADOW,
                     f"type parameter {name!r} shadows a user type",
                     f"{base}.type_params.{name}",
+                    at=tp_node.key_node(name),
                 )
 
         # Each declared parameter must have a valid domain (spec 8). A missing or
@@ -242,9 +244,9 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, 
             decl = tp_node.get(name)
             dom = decl.get("domain") if isinstance(decl, YMap) else None
             if not isinstance(dom, YScalar):
-                diags.add(errors.MISSING_TYPE_PARAM_DOMAIN, f"{name!r} needs a domain", f"{base}.type_params.{name}")
+                diags.add(errors.MISSING_TYPE_PARAM_DOMAIN, f"{name!r} needs a domain", f"{base}.type_params.{name}", at=tp_node.key_node(name))
             elif dom.text not in ("data", "object"):
-                diags.add(errors.BAD_TYPE_PARAM_DOMAIN, f"invalid domain {dom.text!r}", f"{base}.type_params.{name}")
+                diags.add(errors.BAD_TYPE_PARAM_DOMAIN, f"invalid domain {dom.text!r}", f"{base}.type_params.{name}", at=dom)
 
         # Every parameter must appear in an input port type so inference can bind
         # it (spec 8.1). Parameters used only in outputs/where are errors.
@@ -255,6 +257,7 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, 
                     errors.TYPE_PARAM_NOT_IN_INPUT,
                     f"type parameter {name!r} not used by any input port",
                     f"{base}.type_params.{name}",
+                    at=tp_node.key_node(name),
                 )
 
         # `where` constraints: well-formed, known trait, declared parameter.
@@ -263,11 +266,11 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, 
             for i, item in enumerate(where.items):
                 cpath = f"{base}.where[{i}]"
                 if not isinstance(item, YScalar) or not item.is_str:
-                    diags.add(errors.MALFORMED_CONSTRAINT, "constraint must be a string", cpath)
+                    diags.add(errors.MALFORMED_CONSTRAINT, "constraint must be a string", cpath, at=item)
                     continue
                 m = _CONSTRAINT_RE.match(item.text)
                 if not m:
-                    diags.add(errors.MALFORMED_CONSTRAINT, f"malformed constraint {item.text!r}", cpath)
+                    diags.add(errors.MALFORMED_CONSTRAINT, f"malformed constraint {item.text!r}", cpath, at=item)
                     continue
                 trait, param = m.group(1), m.group(2)
                 # The constraint must target a declared parameter of this process.
@@ -275,13 +278,13 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, 
                     # Distinguish "constrained a concrete type" (a real, if
                     # disallowed, type name) from arbitrary garbage (spec 8.1).
                     if param in env.user_types or param in PRIMITIVE_TYPES or param in BUILTIN_TYPE_NAMES:
-                        diags.add(errors.CONSTRAINT_ON_CONCRETE, f"constraint over concrete type {param!r}", cpath)
+                        diags.add(errors.CONSTRAINT_ON_CONCRETE, f"constraint over concrete type {param!r}", cpath, at=item)
                     else:
-                        diags.add(errors.MALFORMED_CONSTRAINT, f"{param!r} is not a type parameter", cpath)
+                        diags.add(errors.MALFORMED_CONSTRAINT, f"{param!r} is not a type parameter", cpath, at=item)
                     continue
                 # The trait must be `Numeric` (built-in) or a declared trait.
                 if trait != "Numeric" and trait not in env.traits:
-                    diags.add(errors.UNKNOWN_TRAIT, f"unknown trait {trait!r}", cpath)
+                    diags.add(errors.UNKNOWN_TRAIT, f"unknown trait {trait!r}", cpath, at=item)
 
     # Call-site instantiation: infer type arguments and check where-constraints.
     _check_instantiations(doc, diags, env, sigs)

@@ -426,7 +426,7 @@ def _eval(node):
     raise ContractError(errors.CONTRACT_TYPE_ERROR, "uncomputable constant")
 
 
-def _check_expr(diags: Diagnostics, text: str, ctx: ContractCtx, path: str) -> None:
+def _check_expr(diags: Diagnostics, text: str, ctx: ContractCtx, path: str, at=None) -> None:
     try:
         ast = _Parser(_lex(text)).parse()
         result = _type_of(ast, ctx)
@@ -443,7 +443,9 @@ def _check_expr(diags: Diagnostics, text: str, ctx: ContractCtx, path: str) -> N
             except ZeroDivisionError:
                 raise ContractError(errors.CONTRACT_STATIC_FALSE, "static division by zero")
     except ContractError as exc:
-        diags.add(exc.code, str(exc), path)
+        # Position points at the contract expression scalar (the whole line);
+        # sub-token offsets within the expression are not tracked in v1.
+        diags.add(exc.code, str(exc), path, at=at)
 
 
 # --- View schema + port type collection -----------------------------------
@@ -517,4 +519,4 @@ def check_contracts(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
                     continue
                 expr_node = item.get("expr")
                 if isinstance(expr_node, YScalar) and expr_node.is_str:
-                    _check_expr(diags, expr_node.text, ctx, f"{base}.{scope}[{i}]")
+                    _check_expr(diags, expr_node.text, ctx, f"{base}.{scope}[{i}]", at=expr_node)

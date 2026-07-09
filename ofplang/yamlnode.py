@@ -40,10 +40,17 @@ TAG_STR = "tag:yaml.org,2002:str"
 
 @dataclass(frozen=True)
 class Pos:
-    """1-based source position, for human-facing diagnostics."""
+    """1-based source position, for human-facing diagnostics.
+
+    ``file`` records which source the position belongs to. This matters after
+    ``$import`` expansion: an imported node's line refers to *its own* fragment
+    file, not the root document, so a diagnostic can only be unambiguous when it
+    also names the file.
+    """
 
     line: int
     col: int
+    file: str | None = None
 
 
 @dataclass
@@ -148,28 +155,29 @@ class YamlError(Exception):
         self.pos = pos
 
 
-def _pos(mark) -> Pos:
+def _pos(mark, file: str | None) -> Pos:
     # PyYAML marks are 0-based; present them 1-based to match editor gutters.
     if mark is None:
-        return Pos(0, 0)
-    return Pos(mark.line + 1, mark.column + 1)
+        return Pos(0, 0, file)
+    return Pos(mark.line + 1, mark.column + 1, file)
 
 
-def _convert(node) -> YNode:
+def _convert(node, file: str | None) -> YNode:
     """Recursively convert a PyYAML node into our neutral tree.
 
     We deliberately do not use the loader's object constructor: constructing
     would resolve scalars to Python values and merge duplicate keys, discarding
-    exactly the information this module exists to preserve.
+    exactly the information this module exists to preserve. ``file`` is stamped
+    into every position so diagnostics can name the originating source.
     """
     if isinstance(node, yaml.ScalarNode):
-        return YScalar(tag=node.tag, pos=_pos(node.start_mark), text=node.value)
+        return YScalar(tag=node.tag, pos=_pos(node.start_mark, file), text=node.value)
 
     if isinstance(node, yaml.SequenceNode):
         return YSeq(
             tag=node.tag,
-            pos=_pos(node.start_mark),
-            items=[_convert(item) for item in node.value],
+            pos=_pos(node.start_mark, file),
+            items=[_convert(item, file) for item in node.value],
         )
 
     if isinstance(node, yaml.MappingNode):
@@ -182,28 +190,28 @@ def _convert(node) -> YNode:
                 raise YamlError(
                     "wrong_value_kind",
                     "mapping keys must be scalars in v0",
-                    _pos(key_node.start_mark),
+                    _pos(key_node.start_mark, file),
                 )
-            key = YScalar(tag=key_node.tag, pos=_pos(key_node.start_mark), text=key_node.value)
-            entries.append((key, _convert(value_node)))
-        return YMap(tag=node.tag, pos=_pos(node.start_mark), entries=entries)
+            key = YScalar(tag=key_node.tag, pos=_pos(key_node.start_mark, file), text=key_node.value)
+            entries.append((key, _convert(value_node, file)))
+        return YMap(tag=node.tag, pos=_pos(node.start_mark, file), entries=entries)
 
     # PyYAML only produces the three node kinds above.
     raise YamlError("wrong_value_kind", f"unsupported YAML node: {type(node).__name__}")
 
 
-def compose_document(text: str) -> YNode:
+def compose_document(text: str, file: str | None = None) -> YNode:
     """Parse one YAML text into a single node tree.
 
     Enforces the "single document" rule (spec 3.4) that applies to both the
     root document and every import target: zero documents (empty file) and
-    multi-document streams are both rejected.
+    multi-document streams are both rejected. ``file`` labels positions.
     """
     try:
         docs = list(yaml.compose_all(text, Loader=yaml.SafeLoader))
     except yaml.YAMLError as exc:
         mark = getattr(exc, "problem_mark", None)
-        raise YamlError("wrong_value_kind", f"unparsable YAML: {exc}", _pos(mark)) from exc
+        raise YamlError("wrong_value_kind", f"unparsable YAML: {exc}", _pos(mark, file)) from exc
 
     if len(docs) == 0:
         raise YamlError("wrong_value_kind", "empty YAML document")
@@ -213,7 +221,7 @@ def compose_document(text: str) -> YNode:
     root = docs[0]
     if root is None:
         raise YamlError("wrong_value_kind", "empty YAML document")
-    return _convert(root)
+    return _convert(root, file)
 
 
 def load_document(path: str | Path) -> YNode:
@@ -221,11 +229,11 @@ def load_document(path: str | Path) -> YNode:
 
     Missing/unreadable files are reported with the import-oriented code because
     this loader is used both for the root document and for import targets; the
-    caller decides how to surface it.
+    caller decides how to surface it. The file path is stamped into positions.
     """
     p = Path(path)
     try:
         text = p.read_text(encoding="utf-8")
     except OSError as exc:
         raise YamlError("unreadable_import", f"cannot read {p}: {exc}") from exc
-    return compose_document(text)
+    return compose_document(text, str(p))

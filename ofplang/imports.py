@@ -72,16 +72,29 @@ def _load_targets(value: YNode, current_file: Path, stack: list[Path]) -> list[Y
     """
     results: list[YNode] = []
     for rel in _import_targets(value):
+        # Anchor import-failure diagnostics at the `$import` site that triggered
+        # them (value.pos), since the failure is about *this* import directive —
+        # the target file often has no single meaningful position (a cycle, an
+        # unreadable path, or a multi-document stream).
+        site = value.pos
+
         # URI fragments are not defined for portable v0 imports (spec 3.4).
         if "#" in rel:
-            raise YamlError(errors.URI_FRAGMENT_IMPORT, f"URI fragment in import {rel!r}")
+            raise YamlError(errors.URI_FRAGMENT_IMPORT, f"URI fragment in import {rel!r}", site)
 
         target = _resolve_path(current_file, rel)
         # A target already on the resolution stack closes an import cycle.
         if target in stack:
-            raise YamlError(errors.IMPORT_CYCLE, f"import cycle at {target}")
+            raise YamlError(errors.IMPORT_CYCLE, f"import cycle at {target}", site)
 
-        loaded = load_document(target)  # may raise unreadable/multidoc YamlError
+        try:
+            loaded = load_document(target)  # may raise unreadable/multidoc YamlError
+        except YamlError as exc:
+            # The target's failure has no position of its own; point at the
+            # importing `$import` so the author can find the offending line.
+            if exc.pos is None:
+                raise YamlError(exc.code, exc.message, site) from exc
+            raise
         stack.append(target)
         try:
             expanded = _expand(loaded, target, stack)
@@ -145,10 +158,12 @@ def _scan_duplicate_keys(node: YNode) -> None:
     if isinstance(node, YMap):
         dups = node.duplicate_keys()
         if dups:
+            # Point at the duplicated key node itself, not the enclosing map.
+            key_node = node.key_node(dups[0])
             raise YamlError(
                 errors.DUPLICATE_KEY_AFTER_IMPORT,
                 f"duplicate key {dups[0]!r} after import resolution",
-                node.pos,
+                key_node.pos if key_node else node.pos,
             )
         for _, value in node.entries:
             _scan_duplicate_keys(value)
@@ -164,8 +179,10 @@ def load_expanded(source: str | Path) -> YNode:
     it performs load -> recursive expand -> duplicate-key scan, raising
     :class:`YamlError` for any structural import failure.
     """
+    # Resolve for cycle identity, but load via the path as given so the root's
+    # diagnostics display the same (often relative) path the caller passed.
     root_path = Path(source).resolve()
-    root = load_document(root_path)
+    root = load_document(source)
     expanded = _expand(root, root_path, [root_path])
     _scan_duplicate_keys(expanded)
     return expanded

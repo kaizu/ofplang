@@ -54,10 +54,10 @@ def classify_name(name: str) -> str | None:
     return None
 
 
-def _check(diags: Diagnostics, name: str, path: str) -> None:
+def _check(diags: Diagnostics, name: str, path: str, at=None) -> None:
     code = classify_name(name)
     if code is not None:
-        diags.add(code, f"invalid identifier {name!r}", path)
+        diags.add(code, f"invalid identifier {name!r}", path, at=at)
 
 
 def _check_map_keys(diags: Diagnostics, node: YNode | None, base: str) -> None:
@@ -65,7 +65,8 @@ def _check_map_keys(diags: Diagnostics, node: YNode | None, base: str) -> None:
     if not isinstance(node, YMap):
         return
     for key in node.keys():
-        _check(diags, key, f"{base}.{key}")
+        # Anchor the diagnostic at the declaring key node.
+        _check(diags, key, f"{base}.{key}", at=node.key_node(key))
 
 
 def check_identifiers(doc: YMap, diags: Diagnostics) -> None:
@@ -108,4 +109,4 @@ def check_identifiers(doc: YMap, diags: Diagnostics) -> None:
                         from ofplang.yamlnode import YScalar
 
                         if isinstance(id_node, YScalar):
-                            _check(diags, id_node.text, f"{base}.body.nodes[{i}].id")
+                            _check(diags, id_node.text, f"{base}.body.nodes[{i}].id", at=id_node)

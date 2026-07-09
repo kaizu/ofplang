@@ -188,14 +188,14 @@ def _validate_transform_entry(
 
     # 1. Kind must be a defined v0 transform.
     if kind not in _TRANSFORM_ROLES:
-        diags.add(errors.UNKNOWN_TRANSFORM_KIND, f"unknown transform kind {kind!r}", f"{base}.kind")
+        diags.add(errors.UNKNOWN_TRANSFORM_KIND, f"unknown transform kind {kind!r}", f"{base}.kind", at=entry)
         return
 
     exp_in, exp_out = _TRANSFORM_ROLES[kind]
 
     # 2. Role names must match the kind's required set exactly (no missing/extra).
     if set(in_roles) != set(exp_in) or set(out_roles) != set(exp_out):
-        diags.add(errors.INVALID_TRANSFORM_ROLES, f"invalid roles for {kind}", base)
+        diags.add(errors.INVALID_TRANSFORM_ROLES, f"invalid roles for {kind}", base, at=entry)
         return
 
     # 3. Every referenced path must be Object-bearing (spec 14.4.1).
@@ -208,7 +208,7 @@ def _validate_transform_entry(
                 if parsed and parsed[1] in ports and not ports[parsed[1]].object_bearing:
                     all_ports_ob = False
     if not all_ports_ob:
-        diags.add(errors.PURE_DATA_IN_TRANSFORM, "transform path is Pure Data", base)
+        diags.add(errors.PURE_DATA_IN_TRANSFORM, "transform path is Pure Data", base, at=entry)
         return
 
     # 4. Role typing: all element types must unify to a single T (spec 14.4.1).
@@ -222,7 +222,7 @@ def _validate_transform_entry(
         if t is not None:
             ts.append(t)
     if any(t != ts[0] for t in ts[1:]):
-        diags.add(errors.TRANSFORM_ROLE_TYPE_MISMATCH, f"inconsistent element type in {kind}", base)
+        diags.add(errors.TRANSFORM_ROLE_TYPE_MISMATCH, f"inconsistent element type in {kind}", base, at=entry)
 
 
 # --- Atomic Object completeness --------------------------------------------
@@ -231,6 +231,17 @@ def _check_atomic(diags: Diagnostics, pname: str, proc: YMap, sig: ProcSig) -> N
 
     obj_inputs = {n for n, s in sig.inputs.items() if s.object_bearing}
     obj_outputs = {n for n, s in sig.outputs.items() if s.object_bearing}
+
+    # Resolve a port's declaration node for positioning diagnostics; fall back
+    # to the process node when the port map is absent.
+    inputs_map = proc.get("inputs")
+    outputs_map = proc.get("outputs")
+
+    def _in_at(name: str):
+        return inputs_map.get(name) if isinstance(inputs_map, YMap) else proc
+
+    def _out_at(name: str):
+        return outputs_map.get(name) if isinstance(outputs_map, YMap) else proc
 
     objects = proc.get("objects")
 
@@ -250,9 +261,9 @@ def _check_atomic(diags: Diagnostics, pname: str, proc: YMap, sig: ProcSig) -> N
                     obj_outputs.discard(name)
         # Whatever remains is unaccounted.
         for name in sorted(obj_inputs):
-            diags.add(errors.INCOMPLETE_OBJECTS, f"input {name!r} has no fate", f"{base}.inputs.{name}")
+            diags.add(errors.INCOMPLETE_OBJECTS, f"input {name!r} has no fate", f"{base}.inputs.{name}", at=_in_at(name))
         for name in sorted(obj_outputs):
-            diags.add(errors.INCOMPLETE_OBJECTS, f"output {name!r} has no provenance", f"{base}.outputs.{name}")
+            diags.add(errors.INCOMPLETE_OBJECTS, f"output {name!r} has no provenance", f"{base}.outputs.{name}", at=_out_at(name))
         return
 
     # Count fates (per Object input) and provenances (per Object output) across
@@ -314,14 +325,14 @@ def _check_atomic(diags: Diagnostics, pname: str, proc: YMap, sig: ProcSig) -> N
     # here as a fate count of 2 -> multiple_fates (spec 13.1 example).
     for name in sorted(fates):
         if fates[name] == 0:
-            diags.add(errors.INCOMPLETE_OBJECTS, f"input {name!r} has no fate", f"{base}.inputs.{name}")
+            diags.add(errors.INCOMPLETE_OBJECTS, f"input {name!r} has no fate", f"{base}.inputs.{name}", at=_in_at(name))
         elif fates[name] > 1:
-            diags.add(errors.MULTIPLE_FATES, f"input {name!r} has multiple fates", f"{base}.inputs.{name}")
+            diags.add(errors.MULTIPLE_FATES, f"input {name!r} has multiple fates", f"{base}.inputs.{name}", at=_in_at(name))
     for name in sorted(provs):
         if provs[name] == 0:
-            diags.add(errors.INCOMPLETE_OBJECTS, f"output {name!r} has no provenance", f"{base}.outputs.{name}")
+            diags.add(errors.INCOMPLETE_OBJECTS, f"output {name!r} has no provenance", f"{base}.outputs.{name}", at=_out_at(name))
         elif provs[name] > 1:
-            diags.add(errors.MULTIPLE_PROVENANCES, f"output {name!r} has multiple provenances", f"{base}.outputs.{name}")
+            diags.add(errors.MULTIPLE_PROVENANCES, f"output {name!r} has multiple provenances", f"{base}.outputs.{name}", at=_out_at(name))
 
 
 # --- Composite linearity ---------------------------------------------------

@@ -46,7 +46,7 @@ def _check_ports(
         # An unrecognized phase word is a shape mistake; report it but keep going
         # so we can still evaluate the Object-bearing rule where applicable.
         if phase is not None and phase not in _PHASES:
-            diags.add(errors.WRONG_VALUE_KIND, f"unknown phase {phase!r}", f"{ppath}.phase")
+            diags.add(errors.WRONG_VALUE_KIND, f"unknown phase {phase!r}", f"{ppath}.phase", at=phase_node)
 
         # Object-bearing + graph phase is the prohibited combination. We must
         # resolve the port type to know whether it is Object-bearing; malformed
@@ -64,6 +64,7 @@ def _check_ports(
                 errors.OBJECT_GRAPH_PHASE,
                 "Object-bearing values must not have graph phase",
                 ppath,
+                at=phase_node or port,
             )
 
 

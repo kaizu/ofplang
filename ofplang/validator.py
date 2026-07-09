@@ -33,13 +33,26 @@ class Diagnostic:
     """A single validation finding.
 
     ``code`` is a stable identifier from :mod:`ofplang.errors`. ``path`` is an
-    optional human-oriented location hint (e.g. ``processes.main.inputs.x``)
-    and is not required for fixture matching unless a fixture opts in.
+    optional human-oriented logical location (e.g. ``processes.main.inputs.x``).
+    ``file``/``line``/``col`` are the source position when known (1-based); they
+    are optional so passes that cannot supply a node position still work.
     """
 
     code: str
     message: str = ""
     path: str | None = None
+    file: str | None = None
+    line: int | None = None
+    col: int | None = None
+
+    @property
+    def location(self) -> str | None:
+        """A ``file:line:col`` (or ``line:col``) string when a position is
+        known, else ``None`` — the primary locator for human output."""
+        if self.line is None:
+            return None
+        head = f"{self.file}:" if self.file else ""
+        return f"{head}{self.line}:{self.col}"
 
 
 @dataclass
@@ -115,7 +128,8 @@ def validate(
     try:
         root = load_expanded(source)
     except YamlError as exc:
-        diags.add(exc.code, exc.message)
+        # Surface the failure's own position (file/line) when it has one.
+        diags.add(exc.code, exc.message, at=exc.pos)
         return diags.result()
 
     # Step 2: structural shape, reserved-key, and metadata-format checks.

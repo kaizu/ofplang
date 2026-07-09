@@ -32,9 +32,13 @@ Exit codes: `0` all valid, `1` validation errors found, `2` usage/input error.
 
 ```
 $ ofplang workflow.yaml
-error unknown_type processes.main.inputs.x.type  unknown type in 'Foo'
+workflow.yaml:7:15: error unknown_type  processes.main.inputs.x.type  unknown type in 'Foo'
 1 error in 1 of 1 file
 ```
+
+Diagnostics carry a `file:line:col` source position (an imported fragment's own
+file when the problem is inside an `$import`); `--format json` includes
+`file`/`line`/`col` fields.
 
 ## Library
 

@@ -41,16 +41,16 @@ def _check_type_field(
     if not isinstance(node, YScalar) or not node.is_str:
         # A non-string type field is a shape-level mistake; report with the
         # dedicated code so it is not mistaken for a malformed expression.
-        diags.add(errors.TYPE_FIELD_NOT_STRING, "type must be a string scalar", path)
+        diags.add(errors.TYPE_FIELD_NOT_STRING, "type must be a string scalar", path, at=node)
         return
     try:
         expr = parse_type(node.text)
     except TypeParseError as exc:
-        diags.add(errors.MALFORMED_TYPE_EXPR, str(exc), path)
+        diags.add(errors.MALFORMED_TYPE_EXPR, str(exc), path, at=node)
         return
     code = resolve_error(expr, env, type_params)
     if code is not None:
-        diags.add(code, f"unknown type in {node.text!r}", path)
+        diags.add(code, f"unknown type in {node.text!r}", path, at=node)
 
 
 def _check_ports(
@@ -72,7 +72,7 @@ def check_types(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
     if isinstance(types, YMap):
         for name in types.keys():
             if name in RESERVED_TYPE_LIKE:
-                diags.add(errors.REDECLARE_BUILTIN, f"{name!r} is reserved", f"types.{name}")
+                diags.add(errors.REDECLARE_BUILTIN, f"{name!r} is reserved", f"types.{name}", at=types.key_node(name))
 
     processes = doc.get("processes")
     if not isinstance(processes, YMap):
@@ -94,6 +94,7 @@ def check_types(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
                         errors.REDECLARE_BUILTIN,
                         f"type parameter {name!r} is reserved",
                         f"{base}.type_params.{name}",
+                        at=tp_node.key_node(name),
                     )
 
         # Resolve the type on every input and output port.

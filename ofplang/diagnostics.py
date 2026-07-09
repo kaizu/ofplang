@@ -24,9 +24,22 @@ class Diagnostics:
         # not rely on it for matching: comparison against fixtures is set-based.
         self._items: list[Diagnostic] = []
 
-    def add(self, code: str, message: str = "", path: str | None = None) -> Diagnostic:
-        """Record a finding. Returns it so callers can reference/inspect it."""
-        diag = Diagnostic(code=code, message=message, path=path)
+    def add(
+        self, code: str, message: str = "", path: str | None = None, at=None
+    ) -> Diagnostic:
+        """Record a finding. Returns it so callers can reference/inspect it.
+
+        ``at`` optionally supplies the source position: either a node (anything
+        exposing a ``.pos`` with ``file``/``line``/``col``) or a ``Pos`` itself.
+        It is duck-typed so this module needs no import of the YAML node layer.
+        """
+        file = line = col = None
+        pos = getattr(at, "pos", at)  # a node carries .pos; a Pos is used as-is
+        if pos is not None:
+            file = getattr(pos, "file", None)
+            line = getattr(pos, "line", None)
+            col = getattr(pos, "col", None)
+        diag = Diagnostic(code=code, message=message, path=path, file=file, line=line, col=col)
         self._items.append(diag)
         return diag
 

@@ -82,22 +82,22 @@ def _check_policy(
     # Unknown preference kind: only x- extension kinds are tolerated, and only in
     # extension-tolerant mode (spec 23.4).
     if kind is None or (kind not in _V0_KINDS and not kind.startswith("x-")):
-        diags.add(errors.UNKNOWN_PREFER_KIND, f"unknown prefer kind {kind!r}", f"{base}.prefer.kind")
+        diags.add(errors.UNKNOWN_PREFER_KIND, f"unknown prefer kind {kind!r}", f"{base}.prefer.kind", at=prefer)
         return
     if kind.startswith("x-"):
         if mode != EXTENSION_TOLERANT:
-            diags.add(errors.UNKNOWN_PREFER_KIND, f"extension kind {kind!r}", f"{base}.prefer.kind")
+            diags.add(errors.UNKNOWN_PREFER_KIND, f"extension kind {kind!r}", f"{base}.prefer.kind", at=prefer)
         return
 
     # Object-target rules with dedicated codes so the author sees the exact rule.
     if kind in _GAP_KINDS and has_object:
-        diags.add(errors.GAP_WITH_OBJECT, f"{kind} must not target an object", base)
+        diags.add(errors.GAP_WITH_OBJECT, f"{kind} must not target an object", base, at=policy)
     if kind in _OBJECT_REQUIRED and not has_object:
-        diags.add(errors.TEMPERATURE_WITHOUT_OBJECT, f"{kind} requires an object target", base)
+        diags.add(errors.TEMPERATURE_WITHOUT_OBJECT, f"{kind} requires an object target", base, at=policy)
 
     # Preference payload shape (value + unit) for v0 kinds (spec 23.4).
     if isinstance(prefer, YMap) and not _payload_ok(prefer):
-        diags.add(errors.MALFORMED_PREFER_PAYLOAD, f"{kind} payload requires numeric value and unit", f"{base}.prefer")
+        diags.add(errors.MALFORMED_PREFER_PAYLOAD, f"{kind} payload requires numeric value and unit", f"{base}.prefer", at=prefer)
 
     # Temporal interval endpoints must be valid temporal references (spec 23.1).
     during = policy.get("during")
@@ -105,7 +105,7 @@ def _check_policy(
         for endpoint in ("from", "to"):
             ep = during.get(endpoint)
             if isinstance(ep, YScalar) and not _valid_temporal(ep.text, node_ids):
-                diags.add(errors.BAD_TEMPORAL_REF, f"invalid temporal reference {ep.text!r}", f"{base}.during.{endpoint}")
+                diags.add(errors.BAD_TEMPORAL_REF, f"invalid temporal reference {ep.text!r}", f"{base}.during.{endpoint}", at=ep)
 
     # An object target that is required/allowed must be Object-bearing (spec 24.1).
     # Skipped for gap kinds, where the object was already rejected outright.
@@ -115,7 +115,7 @@ def _check_policy(
         if isinstance(frm, YScalar):
             ob = _object_bearing_target(frm.text, comp_sig, nodes_by_id, sigs)
             if ob is False:
-                diags.add(errors.NON_OBJECT_BEARING_TARGET, f"object target {frm.text!r} is Pure Data", f"{base}.object")
+                diags.add(errors.NON_OBJECT_BEARING_TARGET, f"object target {frm.text!r} is Pure Data", f"{base}.object", at=frm)
 
 
 def check_scheduling(doc: YMap, diags: Diagnostics, mode: str, sigs: dict[str, ProcSig]) -> None:

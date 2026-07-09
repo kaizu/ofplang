@@ -22,9 +22,9 @@ def check_traits(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
     if isinstance(traits, YMap):
         for name in traits.keys():
             if name == "Numeric":
-                diags.add(errors.REDECLARE_NUMERIC, "Numeric is built-in", f"traits.{name}")
+                diags.add(errors.REDECLARE_NUMERIC, "Numeric is built-in", f"traits.{name}", at=traits.key_node(name))
             elif name in BUILTIN_TYPE_NAMES:
-                diags.add(errors.REDECLARE_BUILTIN, f"{name!r} is reserved", f"traits.{name}")
+                diags.add(errors.REDECLARE_BUILTIN, f"{name!r} is reserved", f"traits.{name}", at=traits.key_node(name))
 
     # `implements` on each user type: every listed trait must be a declared
     # document trait; `Numeric` cannot be implemented by user types (spec 7.3).
@@ -44,6 +44,6 @@ def check_traits(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
             trait = item.text
             path = f"types.{tname}.implements[{i}]"
             if trait == "Numeric":
-                diags.add(errors.IMPLEMENTS_NUMERIC, "cannot implement Numeric", path)
+                diags.add(errors.IMPLEMENTS_NUMERIC, "cannot implement Numeric", path, at=item)
             elif trait not in env.traits:
-                diags.add(errors.UNKNOWN_TRAIT, f"undeclared trait {trait!r}", path)
+                diags.add(errors.UNKNOWN_TRAIT, f"undeclared trait {trait!r}", path, at=item)

@@ -69,15 +69,17 @@ def _check_closed_map(
 ) -> None:
     """Report keys not in ``allowed`` at a closed mapping position."""
     for key in node.keys():
+        # Point the diagnostic at the offending key node itself.
+        key_node = node.key_node(key)
         ext = _classify_extension_key(key, mode)
         if ext is not None:
-            diags.add(ext, f"disallowed key {key!r}", f"{base}.{key}")
+            diags.add(ext, f"disallowed key {key!r}", f"{base}.{key}", at=key_node)
             continue
         if key.startswith("$") or key.startswith("x-"):
             # Accepted extension/import key: skip the allowed-set check.
             continue
         if key not in allowed:
-            diags.add(errors.UNKNOWN_KEY, f"unknown key {key!r}", f"{base}.{key}")
+            diags.add(errors.UNKNOWN_KEY, f"unknown key {key!r}", f"{base}.{key}", at=key_node)
 
 
 def _scan_nulls(diags: Diagnostics, node: YNode, base: str) -> None:
@@ -93,9 +95,9 @@ def _scan_nulls(diags: Diagnostics, node: YNode, base: str) -> None:
             # Path-based classification keeps this universal scan single-pass
             # without threading view context through the recursion.
             if ".view." in base and base.endswith(".value"):
-                diags.add(errors.NULL_STATIC_VALUE, "null is not a valid static view value", base)
+                diags.add(errors.NULL_STATIC_VALUE, "null is not a valid static view value", base, at=node)
             else:
-                diags.add(errors.NULL_VALUE, "null is not a valid v0 value", base)
+                diags.add(errors.NULL_VALUE, "null is not a valid v0 value", base, at=node)
         return
     if isinstance(node, YSeq):
         for i, item in enumerate(node.items):
@@ -125,6 +127,7 @@ def _check_spec_version(diags: Diagnostics, doc: YMap) -> None:
             errors.MALFORMED_SPEC_VERSION,
             f"spec_version must be MAJOR.MINOR, got {text!r}",
             "spec_version",
+            at=node,
         )
 
 
@@ -132,22 +135,22 @@ def _check_process(diags: Diagnostics, pname: str, proc: YNode, mode: str) -> No
     """Validate one process mapping's shape and section placement."""
     base = f"processes.{pname}"
     if not isinstance(proc, YMap):
-        diags.add(errors.WRONG_VALUE_KIND, "process must be a mapping", base)
+        diags.add(errors.WRONG_VALUE_KIND, "process must be a mapping", base, at=proc)
         return
 
     # `kind` is required and selects which sections are legal (spec 10).
     kind_node = proc.get("kind")
     kind = kind_node.text if isinstance(kind_node, YScalar) else None
     if kind is None:
-        diags.add(errors.MISSING_REQUIRED_KEY, "process requires 'kind'", f"{base}.kind")
+        diags.add(errors.MISSING_REQUIRED_KEY, "process requires 'kind'", f"{base}.kind", at=proc)
 
     # Placement rules with dedicated codes: objects only on atomic (spec 14),
     # scheduling only on composite (spec 23.3). Emit the specific code and rely
     # on the allowed-set check to skip re-reporting these keys as unknown.
     if kind == "composite" and proc.get("objects") is not None:
-        diags.add(errors.OBJECTS_ON_COMPOSITE, "objects is atomic-only", f"{base}.objects")
+        diags.add(errors.OBJECTS_ON_COMPOSITE, "objects is atomic-only", f"{base}.objects", at=proc.get("objects"))
     if kind == "atomic" and proc.get("scheduling") is not None:
-        diags.add(errors.SCHEDULING_ON_ATOMIC, "scheduling is composite-only", f"{base}.scheduling")
+        diags.add(errors.SCHEDULING_ON_ATOMIC, "scheduling is composite-only", f"{base}.scheduling", at=proc.get("scheduling"))
 
     # Closed-key check against the kind's allowed set. Unknown `kind` values are
     # left to a later pass; here we default to the union so we do not spuriously
@@ -170,10 +173,10 @@ def _check_process(diags: Diagnostics, pname: str, proc: YNode, mode: str) -> No
                 for i, item in enumerate(nodes.items):
                     npath = f"{base}.body.nodes[{i}]"
                     if not isinstance(item, YMap):
-                        diags.add(errors.WRONG_VALUE_KIND, "node must be a mapping", npath)
+                        diags.add(errors.WRONG_VALUE_KIND, "node must be a mapping", npath, at=item)
                         continue
                     if item.get("id") is None:
-                        diags.add(errors.MISSING_REQUIRED_KEY, "node requires 'id'", f"{npath}.id")
+                        diags.add(errors.MISSING_REQUIRED_KEY, "node requires 'id'", f"{npath}.id", at=item)
                     # Most node kinds target a single `process`; `branch` is the
                     # exception — it selects between `then`/`else` arms and so
                     # requires `then` instead of a top-level `process` (spec 20).
@@ -181,12 +184,13 @@ def _check_process(diags: Diagnostics, pname: str, proc: YNode, mode: str) -> No
                     is_branch = isinstance(node_kind, YScalar) and node_kind.text == "branch"
                     if is_branch:
                         if item.get("then") is None:
-                            diags.add(errors.MISSING_REQUIRED_KEY, "branch requires 'then'", f"{npath}.then")
+                            diags.add(errors.MISSING_REQUIRED_KEY, "branch requires 'then'", f"{npath}.then", at=item)
                     elif item.get("process") is None:
                         diags.add(
                             errors.MISSING_REQUIRED_KEY,
                             "node requires 'process'",
                             f"{npath}.process",
+                            at=item,
                         )
 
 
@@ -198,7 +202,7 @@ def check_shape(doc: YNode, diags: Diagnostics, mode: str) -> None:
     required section (spec 2.3).
     """
     if not isinstance(doc, YMap):
-        diags.add(errors.WRONG_VALUE_KIND, "document root must be a mapping", "<root>")
+        diags.add(errors.WRONG_VALUE_KIND, "document root must be a mapping", "<root>", at=doc)
         return
 
     _scan_nulls(diags, doc, "<root>")
@@ -207,9 +211,9 @@ def check_shape(doc: YNode, diags: Diagnostics, mode: str) -> None:
 
     processes = doc.get("processes")
     if processes is None:
-        diags.add(errors.MISSING_REQUIRED_KEY, "processes section is required", "processes")
+        diags.add(errors.MISSING_REQUIRED_KEY, "processes section is required", "processes", at=doc)
     elif not isinstance(processes, YMap):
-        diags.add(errors.WRONG_VALUE_KIND, "processes must be a mapping", "processes")
+        diags.add(errors.WRONG_VALUE_KIND, "processes must be a mapping", "processes", at=processes)
     else:
         for pname in processes.keys():
             _check_process(diags, pname, processes.get(pname), mode)
