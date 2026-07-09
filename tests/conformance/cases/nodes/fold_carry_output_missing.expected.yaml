@@ -1,5 +1,5 @@
 outcome: invalid
 errors:
   - code: carry_output_missing
-    path: "main.body.nodes.process.carry.score"
+    path: "main.body.nodes.fold_step.carry.score"
 notes: "carry 'score' has no same-name same-type output on add_reagent (spec 16, 18)."

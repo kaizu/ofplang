@@ -30,8 +30,41 @@ _STRICT = os.environ.get("OFPLANG_STRICT_TESTS") == "1"
 
 _CASES = discover_cases(CASES_ROOT) if CASES_ROOT.exists() else []
 
+# Categories whose validation passes are implemented. The validator is built
+# milestone by milestone; a case in a not-yet-implemented category is reported
+# xfail ("pending") rather than failed, so partial progress keeps a green suite.
+# Add categories here as their passes land. `OFPLANG_STRICT_TESTS=1` ignores
+# this gate and holds the whole suite to the full contract (final acceptance).
+IMPLEMENTED_CATEGORIES = {
+    "shape",
+    "metadata",
+    "identifiers",
+    "entry",
+    "extensions",
+    "types",
+    "traits",
+    "views",
+    "phases",
+    "features",
+    "imports",
+    "objects",
+    "transforms",
+    "linearity",
+    "generics",
+    "script",
+    "nodes",
+    "contracts",
+    "scheduling",
+}
+
+
+def _category(case: Case) -> str:
+    return case.id.split("/", 1)[0]
+
 
 def _run(case: Case):
+    if not _STRICT and _category(case) not in IMPLEMENTED_CATEGORIES:
+        pytest.xfail(f"category '{_category(case)}' not implemented yet")
     try:
         return validate(case.root_doc, mode=case.mode)
     except NotImplementedError:

@@ -73,10 +73,82 @@ def validate(
     base_dir:
         Optional base directory for resolving relative ``$import`` paths.
         Defaults to the directory containing ``source``.
+
+    The pipeline follows the spec's processing order (spec 2.2): load, then a
+    sequence of passes each appending to a shared :class:`Diagnostics` sink.
+    Passes are added milestone by milestone; constructs handled by not-yet-built
+    passes simply go unchecked (their conformance cases are gated xfail in the
+    test harness until the owning pass lands).
     """
+    # Imported lazily so this module has no import-time dependency on PyYAML or
+    # the pass modules — keeps the public API cheap to import.
+    from ofplang.diagnostics import Diagnostics
+    from ofplang.yamlnode import YamlError, YMap
+    from ofplang.imports import load_expanded
+    from ofplang import shape as shape_pass
+    from ofplang import identifiers as identifiers_pass
+    from ofplang import entry as entry_pass
+    from ofplang import typecheck as typecheck_pass
+    from ofplang import traits as traits_pass
+    from ofplang import views as views_pass
+    from ofplang import phases as phases_pass
+    from ofplang import features as features_pass
+    from ofplang import objects as objects_pass
+    from ofplang import generics as generics_pass
+    from ofplang import script as script_pass
+    from ofplang import nodes as nodes_pass
+    from ofplang import contracts as contracts_pass
+    from ofplang import scheduling as scheduling_pass
+    from ofplang.objects import build_signatures
+    from ofplang.types import build_env
+
     if mode not in MODES:
         raise ValueError(f"unknown validation mode: {mode!r}")
-    raise NotImplementedError(
-        "ofplang v0 validator is not implemented yet; conformance suite defines "
-        "the contract to build against."
-    )
+
+    diags = Diagnostics()
+
+    # Step 1: load and import-expand the document (spec 2.2 step 1). Both YAML
+    # load failures and structural import failures are fatal — nothing can be
+    # validated without a fully expanded tree — so they surface as the sole
+    # diagnostic and stop.
+    try:
+        root = load_expanded(source)
+    except YamlError as exc:
+        diags.add(exc.code, exc.message)
+        return diags.result()
+
+    # Step 2: structural shape, reserved-key, and metadata-format checks.
+    shape_pass.check_shape(root, diags, mode)
+
+    # Identifier grammar / reserved-name checks on declaration sites.
+    identifiers_pass.check_identifiers(root, diags) if _is_map(root) else None
+
+    # Type layer (spec 2.5, 4, 6, 7). These passes assume a mapping root and a
+    # resolved type environment; a bad root was already reported by shape, so we
+    # skip them rather than risk cascading noise.
+    if isinstance(root, YMap):
+        env = build_env(root)
+        typecheck_pass.check_types(root, diags, env)
+        traits_pass.check_traits(root, diags, env)
+        views_pass.check_views(root, diags, env)
+        phases_pass.check_phases(root, diags, env)
+        features_pass.check_features(root, diags, mode)
+        objects_pass.check_objects(root, diags, env)
+        generics_pass.check_generics(root, diags, env)
+        script_pass.check_scripts(root, diags, env)
+        nodes_pass.check_nodes(root, diags, build_signatures(root, env))
+        contracts_pass.check_contracts(root, diags, env)
+        scheduling_pass.check_scheduling(root, diags, mode)
+
+    # Entry process resolution.
+    entry_pass.check_entry(root, diags)
+
+    return diags.result()
+
+
+def _is_map(node) -> bool:
+    # Small guard so identifier checking (which assumes a mapping root) is only
+    # invoked on a well-formed root; a bad root was already reported by shape.
+    from ofplang.yamlnode import YMap
+
+    return isinstance(node, YMap)
