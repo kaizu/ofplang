@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unknown_trait
+    path: "types.Plate96.implements[0]"
+notes: "A type may not implement a trait not declared in top-level traits (spec 7.3)."

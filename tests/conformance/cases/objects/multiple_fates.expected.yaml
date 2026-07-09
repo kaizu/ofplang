@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: multiple_fates
+    path: "processes.bad.inputs.sample"
+notes: "inputs.sample is both mapped and consumed (spec 13.1)."

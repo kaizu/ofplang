@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: redeclare_numeric
+    path: "traits.Numeric"
+notes: "Numeric is a closed built-in trait and must not be redeclared (spec 7.3)."

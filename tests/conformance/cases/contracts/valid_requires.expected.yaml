@@ -1,0 +1,2 @@
+outcome: valid
+notes: "requires references inputs.*.view.length; type-checks to Bool (spec 9)."

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: empty_import
+    path: "processes.$import"
+notes: "An empty import path string is a validation error (spec 3.4)."

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: missing_max_iterations
+    path: "main.body.nodes.loop"
+notes: "do_while requires max_iterations (spec 19, requirement 5)."

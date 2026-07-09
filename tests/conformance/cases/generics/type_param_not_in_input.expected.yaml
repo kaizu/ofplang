@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: type_param_not_in_input
+    path: "processes.make_thing.type_params.T"
+notes: "Every type parameter must appear in at least one input port type (spec 8.1)."

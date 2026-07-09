@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: one_sided_object_output
+    path: "main.body.nodes.handle.cup"
+notes: "then arm outputs Object cup but else arm does not; one-sided is forbidden (spec 20, 20.1)."

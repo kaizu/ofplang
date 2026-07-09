@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: object_output_unused
+    path: "main.body.nodes.make.cup"
+notes: "Object-bearing output 'make.cup' is not connected downstream or returned (spec 12.2)."

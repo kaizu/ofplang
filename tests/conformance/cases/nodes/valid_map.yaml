@@ -1,0 +1,52 @@
+spec_version: "0.0"
+features:
+  - node_map
+types:
+  Cup:
+    domain: object
+processes:
+  cup_create_from_label:
+    kind: atomic
+    inputs:
+      label:
+        type: String
+        phase: data
+    outputs:
+      cup:
+        type: Cup
+        phase: data
+    objects:
+      create:
+        - outputs.cup
+  cup_use:
+    kind: atomic
+    inputs:
+      cup:
+        type: Cup
+        phase: data
+    outputs: {}
+    objects:
+      consume:
+        - inputs.cup
+  main:
+    kind: composite
+    inputs:
+      labels:
+        type: Array<String>
+        phase: data
+    body:
+      nodes:
+        - id: create_cups
+          kind: map
+          process: cup_create_from_label
+          each:
+            label:
+              from: inputs.labels
+        - id: use_cups
+          kind: map
+          process: cup_use
+          each:
+            cup:
+              from: create_cups.cup
+      returns: {}
+entry: main

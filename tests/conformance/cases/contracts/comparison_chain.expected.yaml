@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: comparison_chain
+    path: "processes.main.contracts.requires[0]"
+notes: "Comparison operators are non-associative; 1 < x < 10 is an error (spec 9.2)."

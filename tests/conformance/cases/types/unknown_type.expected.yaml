@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unknown_type
+    path: "processes.main.inputs.x.type"
+notes: "Type atom 'Foo' does not resolve to any known type (spec 2.5)."

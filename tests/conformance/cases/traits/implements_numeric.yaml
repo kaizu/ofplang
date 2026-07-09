@@ -1,0 +1,12 @@
+spec_version: "0.0"
+types:
+  Temperature:
+    domain: data
+    implements:
+      - Numeric
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: missing_required_key
+    path: "processes.main.body.nodes[0].process"
+notes: "An ordinary node requires a 'process' key (spec 11)."

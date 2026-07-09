@@ -1,0 +1,8 @@
+spec_version: "0.0"
+$custom: 1
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

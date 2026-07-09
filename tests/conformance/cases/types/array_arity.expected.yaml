@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: malformed_type_expr
+    path: "processes.main.inputs.x.type"
+notes: "Array requires exactly one type argument; multiple args are invalid (spec 2.5)."

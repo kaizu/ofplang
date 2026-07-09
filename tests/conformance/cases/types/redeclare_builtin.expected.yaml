@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: redeclare_builtin
+    path: "types.Int"
+notes: "Built-in names (Int) must not be redeclared as user types (spec 2.4, 7.1)."

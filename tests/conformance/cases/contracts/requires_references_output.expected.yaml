@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: contract_reference_scope
+    path: "processes.main.contracts.requires[0]"
+notes: "requires may reference only inputs.*.view, not outputs (spec 9.1)."

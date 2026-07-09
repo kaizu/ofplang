@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unknown_key
+    path: "bogus"
+notes: "Portable v0 YAML is closed; unknown top-level key is an error (spec 2.3)."

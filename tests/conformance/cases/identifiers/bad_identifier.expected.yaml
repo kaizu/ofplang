@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: invalid_identifier
+    path: "processes.1bad"
+notes: "Identifiers must match [A-Za-z_][A-Za-z0-9_]* (spec 2.4)."

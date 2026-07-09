@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: incomplete_objects
+    path: "processes.bad.outputs.sample"
+notes: "Object output slot has no declared provenance (spec 13, 13.1)."

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: implements_numeric
+    path: "types.Temperature.implements[0]"
+notes: "User-defined types must not implement Numeric (spec 7.3)."

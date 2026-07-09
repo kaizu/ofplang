@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unknown_feature
+    path: "features[0]"
+notes: "Feature names must be v0-defined; 'bogus_feature' is unknown (spec 4.1)."

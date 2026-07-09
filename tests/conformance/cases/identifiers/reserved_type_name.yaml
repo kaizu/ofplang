@@ -1,0 +1,10 @@
+spec_version: "0.0"
+types:
+  state:
+    domain: data
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

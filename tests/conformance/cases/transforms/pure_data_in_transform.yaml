@@ -1,0 +1,24 @@
+spec_version: "0.0"
+processes:
+  bad:
+    kind: atomic
+    inputs:
+      xs:
+        type: Array<Int>
+        phase: data
+    outputs:
+      ys:
+        type: Array<Int>
+        phase: data
+    objects:
+      transform:
+        - kind: array_reverse
+          inputs:
+            xs: inputs.xs
+          outputs:
+            ys: outputs.ys
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

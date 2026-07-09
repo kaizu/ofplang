@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: script_object_port
+    path: "processes.bad_script.inputs.cup"
+notes: "Script process ports must be Pure Data; Object port is invalid (spec 22.1)."

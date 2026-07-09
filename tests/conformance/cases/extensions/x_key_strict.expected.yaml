@@ -1,0 +1,6 @@
+mode: strict
+outcome: invalid
+errors:
+  - code: unknown_key
+    path: "x-vendor"
+notes: "x- extension keys are not strict portable v0 unless run extension-tolerant (spec 2.3, 26)."

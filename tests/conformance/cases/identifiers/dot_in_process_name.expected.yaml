@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: dot_in_identifier
+    path: "processes.my.proc"
+notes: "'.' is not allowed in v0 identifiers, including process names (spec 2.4)."

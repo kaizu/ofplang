@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unknown_view_field
+    path: "processes.main.contracts.requires[0]"
+notes: "'rows' is not a field of Plate96's view schema (spec 7.4, 9)."

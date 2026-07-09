@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: object_graph_phase
+    path: "processes.main.inputs.cup"
+notes: "Object-bearing values must not have graph phase (spec 6.1)."

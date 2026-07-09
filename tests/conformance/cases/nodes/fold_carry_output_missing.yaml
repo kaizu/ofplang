@@ -1,0 +1,42 @@
+spec_version: "0.0"
+features:
+  - node_fold
+processes:
+  add_reagent:
+    kind: atomic
+    inputs:
+      score:
+        type: Float
+        phase: data
+      reagent:
+        type: Float
+        phase: data
+    outputs:
+      total:
+        type: Float
+        phase: data
+  main:
+    kind: composite
+    inputs:
+      initial_score:
+        type: Float
+        phase: data
+      reagents:
+        type: Array<Float>
+        phase: data
+    body:
+      nodes:
+        - id: process
+          kind: fold
+          process: add_reagent
+          carry:
+            score:
+              from: inputs.initial_score
+          each:
+            reagent:
+              from: inputs.reagents
+          outputs:
+            score:
+              mode: carry
+      returns: {}
+entry: main

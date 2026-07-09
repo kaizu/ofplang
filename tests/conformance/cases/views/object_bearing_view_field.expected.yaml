@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: object_bearing_view_field
+    path: "types.Tray.view.held"
+notes: "View field types must be Pure Data primitives or Arrays thereof; Object type is invalid (spec 7.4)."

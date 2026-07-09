@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: import_cycle
+notes: "a.yaml imports b.yaml imports a.yaml (spec 3, 3.4)."

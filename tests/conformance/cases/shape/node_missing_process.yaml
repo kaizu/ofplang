@@ -1,0 +1,9 @@
+spec_version: "0.0"
+processes:
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: step
+      returns: {}
+entry: main

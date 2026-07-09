@@ -1,0 +1,6 @@
+spec_version: "0.0"
+processes:
+  helper:
+    kind: atomic
+    inputs: {}
+    outputs: {}

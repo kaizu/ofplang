@@ -1,0 +1,16 @@
+spec_version: "0.0"
+types:
+  Image:
+    domain: data
+processes:
+  main:
+    kind: atomic
+    inputs:
+      img:
+        type: Image
+        phase: data
+      xs:
+        type: Array<Image>
+        phase: data
+    outputs: {}
+entry: main

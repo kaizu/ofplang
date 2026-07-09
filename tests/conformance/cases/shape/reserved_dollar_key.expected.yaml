@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: reserved_dollar_key
+    path: "$custom"
+notes: "$import is the only allowed $-prefixed key; any other is an error (spec 2.4)."

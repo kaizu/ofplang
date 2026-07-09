@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: missing_required_feature
+    path: "features"
+notes: "kind: map requires node_map; explicit features section omits it (spec 4.1, 4.3)."

@@ -1,0 +1,16 @@
+spec_version: "0.0"
+processes:
+  main:
+    kind: atomic
+    inputs:
+      x:
+        type: Int
+        phase: data
+    outputs:
+      y:
+        type: Int
+        phase: data
+    contracts:
+      requires:
+        - expr: "outputs.y.view >= 0"
+entry: main

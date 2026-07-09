@@ -1,0 +1,11 @@
+spec_version: "0.0"
+types:
+  $import: ./frag.yaml
+  Image:
+    domain: data
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

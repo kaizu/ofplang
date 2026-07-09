@@ -1,0 +1,3 @@
+mode: extension-tolerant
+outcome: valid
+notes: "In extension-tolerant mode, x- extension keys are accepted (spec 26)."

@@ -1,0 +1,9 @@
+# Reference minimal valid v0 document. Not a case itself (no expectation file).
+# Copy and extend this when authoring new cases.
+spec_version: "0.0"
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

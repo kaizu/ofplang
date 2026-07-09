@@ -1,0 +1,2 @@
+outcome: valid
+notes: "Omission of spec_version is allowed in v0 (spec 2.1)."

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: incomplete_objects
+    path: "processes.bad.inputs.sample"
+notes: "Object input slot has no declared fate (spec 13, 13.1)."

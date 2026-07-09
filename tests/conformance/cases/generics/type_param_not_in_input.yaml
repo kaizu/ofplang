@@ -1,0 +1,17 @@
+spec_version: "0.0"
+processes:
+  make_thing:
+    kind: atomic
+    type_params:
+      T:
+        domain: data
+    inputs: {}
+    outputs:
+      out:
+        type: T
+        phase: data
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

@@ -1,0 +1,15 @@
+spec_version: "0.0"
+types:
+  Cup:
+    domain: object
+  Tray:
+    domain: object
+    view:
+      held:
+        type: Cup
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

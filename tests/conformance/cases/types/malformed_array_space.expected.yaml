@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: malformed_type_expr
+    path: "processes.main.inputs.x.type"
+notes: "Whitespace between 'Array' and '<' is invalid (spec 2.5)."

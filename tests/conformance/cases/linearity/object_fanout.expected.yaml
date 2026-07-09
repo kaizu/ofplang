@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: object_fanout
+    path: "main.body.nodes.make.cup"
+notes: "Object-bearing output 'make.cup' fans out to two consumers (spec 12.2)."

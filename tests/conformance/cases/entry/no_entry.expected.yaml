@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: no_entry_process
+notes: "entry omitted and no process named 'main' exists (spec 10.3)."

@@ -1,0 +1,7 @@
+spec_version: "0.0"
+processes:
+  "1bad":
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: "1bad"

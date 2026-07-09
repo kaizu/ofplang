@@ -1,0 +1,38 @@
+spec_version: "0.0"
+features:
+  - node_do_while
+processes:
+  step_once:
+    kind: atomic
+    inputs:
+      score:
+        type: Float
+        phase: data
+    outputs:
+      score:
+        type: Float
+        phase: data
+      continue:
+        type: Bool
+        phase: data
+  main:
+    kind: composite
+    inputs:
+      initial_score:
+        type: Float
+        phase: data
+    body:
+      nodes:
+        - id: loop
+          kind: do_while
+          process: step_once
+          carry:
+            score:
+              from: inputs.initial_score
+          condition:
+            output: continue
+          outputs:
+            score:
+              mode: carry
+      returns: {}
+entry: main

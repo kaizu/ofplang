@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: unsupported_script_language
+    path: "processes.math_add.script.language"
+notes: "python is the only portable v0 script language (spec 22)."

@@ -1,0 +1,26 @@
+spec_version: "0.0"
+features:
+  - python_script_processes
+types:
+  Cup:
+    domain: object
+processes:
+  bad_script:
+    kind: atomic
+    inputs:
+      cup:
+        type: Cup
+        phase: data
+    outputs:
+      z:
+        type: Float
+        phase: data
+    script:
+      language: python
+      code: |
+        return {"z": 1.0}
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

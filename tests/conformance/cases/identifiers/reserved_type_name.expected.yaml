@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: reserved_name
+    path: "types.state"
+notes: "'state' is a reserved name and must not be a user-defined type name (spec 2.4)."

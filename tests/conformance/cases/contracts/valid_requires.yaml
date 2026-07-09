@@ -1,0 +1,13 @@
+spec_version: "0.0"
+processes:
+  main:
+    kind: atomic
+    inputs:
+      samples:
+        type: Array<Float>
+        phase: data
+    outputs: {}
+    contracts:
+      requires:
+        - expr: "inputs.samples.view.length > 0"
+entry: main

@@ -1,0 +1,19 @@
+spec_version: "0.0"
+features:
+  - scheduling_policies
+processes:
+  main:
+    kind: composite
+    body:
+      nodes: []
+      returns: {}
+    scheduling:
+      policies:
+        - during:
+            from: self.start
+            to: self.end
+          prefer:
+            kind: max_gap
+            value: 10
+            unit: min
+entry: main

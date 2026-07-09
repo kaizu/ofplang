@@ -1,0 +1,2 @@
+outcome: valid
+notes: "Minimal well-formed v0 document: single atomic entry with no ports (spec 2, 10.3)."

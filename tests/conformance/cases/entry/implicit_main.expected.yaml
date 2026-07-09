@@ -1,0 +1,2 @@
+outcome: valid
+notes: "entry omitted but 'main' exists, so main is the entry (spec 10.3)."

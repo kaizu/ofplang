@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: duplicate_key_after_import
+    path: "types.Image"
+notes: "Imported 'Image' collides with a local 'Image' at the same level (spec 3.2)."

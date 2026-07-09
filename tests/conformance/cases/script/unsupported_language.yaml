@@ -1,0 +1,22 @@
+spec_version: "0.0"
+features:
+  - python_script_processes
+processes:
+  math_add:
+    kind: atomic
+    inputs:
+      x:
+        type: Float
+        phase: data
+    outputs:
+      z:
+        type: Float
+        phase: data
+    script:
+      language: javascript
+      code: "return {z: x}"
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

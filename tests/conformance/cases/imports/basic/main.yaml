@@ -1,0 +1,12 @@
+spec_version: "0.0"
+types:
+  $import: ./types_fragment.yaml
+processes:
+  main:
+    kind: atomic
+    inputs:
+      img:
+        type: Image
+        phase: data
+    outputs: {}
+entry: main

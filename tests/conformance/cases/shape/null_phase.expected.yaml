@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: null_value
+    path: "processes.main.inputs.x.phase"
+notes: "null values are not valid in portable v0 YAML (spec 2.3)."

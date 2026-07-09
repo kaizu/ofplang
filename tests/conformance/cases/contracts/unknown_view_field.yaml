@@ -1,0 +1,26 @@
+spec_version: "0.0"
+types:
+  Plate96:
+    domain: object
+    view:
+      well_count:
+        type: Int
+        value: 96
+processes:
+  main:
+    kind: atomic
+    inputs:
+      plate:
+        type: Plate96
+        phase: data
+    outputs:
+      plate:
+        type: Plate96
+        phase: data
+    objects:
+      map:
+        outputs.plate: inputs.plate
+    contracts:
+      requires:
+        - expr: "inputs.plate.view.rows == 8"
+entry: main
