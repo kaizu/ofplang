@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "object.from must reference an Object-bearing value; not yet validated (spec 24.1)"
 errors:
   - code: non_object_bearing_target
 notes: "object.from 'inputs.count' is Pure Data, not Object-bearing (spec 24.1)."

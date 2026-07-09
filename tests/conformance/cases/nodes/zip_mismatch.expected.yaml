@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "graph-phase zip-equal length analysis not yet implemented (spec 17)"
 errors:
   - code: zip_mismatch
 notes: "map each sources have unequal literal lengths known at graph phase (spec 17)."

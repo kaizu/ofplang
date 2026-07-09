@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "do_while non-carry Object output prohibition not yet validated (spec 19)"
 errors:
   - code: noncarry_object_output_in_do_while
 notes: "do_while forbids non-carry Object-bearing outputs (spec 19)."

@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "reference target existence is not yet validated (spec 2.6)"
 errors:
   - code: unknown_reference
 notes: "returns references a non-existent node output (spec 2.6)."

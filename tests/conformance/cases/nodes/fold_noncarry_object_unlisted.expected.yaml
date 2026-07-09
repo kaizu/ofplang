@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "fold non-carry Object output must be explicitly collected (spec 18.3)"
 errors:
   - code: noncarry_object_output_unlisted
 notes: "A non-carry Object output requires an explicit outputs section (spec 18.3)."

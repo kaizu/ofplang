@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "constraint over a concrete type (not a type parameter) not yet distinguished (currently malformed_constraint)"
 errors:
   - code: constraint_on_concrete
 notes: "where must constrain a type parameter, not a concrete type (spec 8.1)."

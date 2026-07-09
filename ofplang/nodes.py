@@ -21,7 +21,56 @@ from __future__ import annotations
 from ofplang import errors
 from ofplang.diagnostics import Diagnostics
 from ofplang.objects import ProcSig
+from ofplang.types import Atom
 from ofplang.yamlnode import YMap, YScalar, YSeq, YNode
+
+
+def _mode_of(entry: YNode | None) -> str | None:
+    if isinstance(entry, YMap):
+        m = entry.get("mode")
+        if isinstance(m, YScalar):
+            return m.text
+    return None
+
+
+def _map_sources(proc_def: YMap) -> dict[str, str]:
+    """For an arm process, map output port -> input port it identity-maps from.
+
+    Used for branch identity-equivalence: an output produced by `create`/
+    `transform` (or absent) is simply not in this dict, which the caller reads
+    as "not a same-argument identity map".
+    """
+    res: dict[str, str] = {}
+    objects = proc_def.get("objects")
+    if isinstance(objects, YMap):
+        mp = objects.get("map")
+        if isinstance(mp, YMap):
+            for out_path in mp.keys():
+                src = mp.get(out_path)
+                op = out_path.split(".")
+                if len(op) == 2 and op[0] == "outputs" and isinstance(src, YScalar):
+                    ip = src.text.split(".")
+                    if len(ip) == 2 and ip[0] == "inputs":
+                        res[op[1]] = ip[1]
+    return res
+
+
+def _each_literal_lengths(node: YMap) -> tuple[list[int], bool]:
+    """Lengths of `each` sources given as sequence literals, and whether *every*
+    each source is such a literal (so the traversal length is graph-known)."""
+    each = node.get("each")
+    if not isinstance(each, YMap):
+        return [], False
+    lengths: list[int] = []
+    total = 0
+    for name in each.keys():
+        total += 1
+        entry = each.get(name)
+        if isinstance(entry, YMap):
+            val = entry.get("value")
+            if isinstance(val, YSeq):
+                lengths.append(len(val.items))
+    return lengths, (len(lengths) == total and total > 0)
 
 
 def _carry_names(node: YMap) -> list[str]:
@@ -50,8 +99,85 @@ def _object_output_names(sig: ProcSig) -> set[str]:
     return {n for n, s in sig.outputs.items() if s.object_bearing}
 
 
+def _check_zip(diags: Diagnostics, node: YMap, nid: str, base: str) -> None:
+    """Zip-equal length mismatch known at graph phase (spec 17).
+
+    Only literal `each` sources have a graph-known length; if two of them differ,
+    the zip-equal traversal is provably ill-formed before runtime.
+    """
+    lengths, _ = _each_literal_lengths(node)
+    if len(set(lengths)) > 1:
+        diags.add(errors.ZIP_MISMATCH, "each sources have unequal literal lengths", f"{base}.nodes.{nid}")
+
+
+def _check_fold_outputs(
+    diags: Diagnostics, node: YMap, nid: str, target: ProcSig, base: str
+) -> None:
+    """fold output-mode rules for Object outputs (spec 18.1, 18.3)."""
+    carry = set(_carry_names(node))
+    obj_outputs = {n for n, s in target.outputs.items() if s.object_bearing}
+    noncarry_obj = obj_outputs - carry
+
+    outputs = node.get("outputs")
+    if isinstance(outputs, YMap):
+        # An Object-bearing output must not be dropped or reduced to `last`;
+        # it may only be carried or collected (spec 18.1 rule 7).
+        for oname in outputs.keys():
+            if oname in obj_outputs and _mode_of(outputs.get(oname)) in ("last", "drop"):
+                diags.add(
+                    errors.OBJECT_OUTPUT_BAD_MODE,
+                    f"Object output {oname!r} cannot use last/drop",
+                    f"{base}.nodes.{nid}.{oname}",
+                )
+    else:
+        # With outputs omitted, a non-carry Object output has no way to be
+        # exposed and must be listed explicitly with collect (spec 18.3).
+        for oname in sorted(noncarry_obj):
+            diags.add(
+                errors.NONCARRY_OBJECT_OUTPUT_UNLISTED,
+                f"non-carry Object output {oname!r} needs an explicit collect",
+                f"{base}.nodes.{nid}.{oname}",
+            )
+
+    # Empty-traversal + mode:last is invalid when emptiness is graph-known (18.2).
+    lengths, all_literal = _each_literal_lengths(node)
+    empty_known = all_literal and lengths and all(x == 0 for x in lengths)
+    if empty_known and isinstance(outputs, YMap):
+        if any(_mode_of(outputs.get(o)) == "last" for o in outputs.keys()):
+            diags.add(errors.LAST_ON_EMPTY_FOLD, "mode: last on a graph-empty traversal", f"{base}.nodes.{nid}")
+
+
+def _check_do_while_outputs(
+    diags: Diagnostics, node: YMap, nid: str, target: ProcSig, base: str
+) -> None:
+    """do_while Object-output prohibition and condition typing (spec 19)."""
+    carry = set(_carry_names(node))
+    noncarry_obj = {n for n, s in target.outputs.items() if s.object_bearing} - carry
+    for oname in sorted(noncarry_obj):
+        diags.add(
+            errors.NONCARRY_OBJECT_OUTPUT_IN_DO_WHILE,
+            f"do_while forbids non-carry Object output {oname!r}",
+            f"{base}.nodes.{nid}.{oname}",
+        )
+
+    # condition.output must name a Boolean Data output of the target (spec 19).
+    cond = node.get("condition")
+    if isinstance(cond, YMap):
+        out_node = cond.get("output")
+        if isinstance(out_node, YScalar):
+            cname = out_node.text
+            osig = target.outputs.get(cname)
+            is_bool = osig is not None and isinstance(osig.type_expr, Atom) and osig.type_expr.name == "Bool"
+            if not is_bool:
+                diags.add(
+                    errors.BAD_CONDITION_OUTPUT,
+                    f"condition.output {cname!r} is not a Boolean output",
+                    f"{base}.nodes.{nid}.condition",
+                )
+
+
 def _check_branch(
-    diags: Diagnostics, node: YMap, nid: str, sigs: dict[str, ProcSig], base: str
+    diags: Diagnostics, node: YMap, nid: str, sigs: dict[str, ProcSig], processes: YMap, base: str
 ) -> None:
     """Reject Object-bearing outputs that are not common to both arms.
 
@@ -95,6 +221,28 @@ def _check_branch(
             f"{base}.nodes.{nid}.{name}",
         )
 
+    # Identity-equivalence for outputs common to both arms (spec 20.2): each arm
+    # must derive the output from the *same* branch argument via an identity map.
+    # An arm that creates/replaces the output (no map source), or maps it from a
+    # different argument, makes the resulting identity arm-dependent.
+    then_def = processes.get(then_proc.text) if isinstance(then_proc, YScalar) else None
+    else_def = (
+        processes.get(else_arm.get("process").text)
+        if isinstance(else_arm, YMap) and isinstance(else_arm.get("process"), YScalar)
+        else None
+    )
+    if isinstance(then_def, YMap) and isinstance(else_def, YMap):
+        then_src = _map_sources(then_def)
+        else_src = _map_sources(else_def)
+        for name in sorted(then_obj & else_obj):
+            ts, es = then_src.get(name), else_src.get(name)
+            if ts is None or es is None or ts != es:
+                diags.add(
+                    errors.BRANCH_NOT_IDENTITY_EQUIVALENT,
+                    f"common Object output {name!r} is not identity-equivalent across arms",
+                    f"{base}.nodes.{nid}.{name}",
+                )
+
 
 def check_nodes(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None:
     processes = doc.get("processes")
@@ -112,6 +260,7 @@ def check_nodes(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None
         if not isinstance(nodes, YSeq):
             continue
         base = f"processes.{pname}.body"
+        processes = doc.get("processes")
 
         for item in nodes.items:
             if not isinstance(item, YMap):
@@ -129,6 +278,8 @@ def check_nodes(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None
             if kind == "fold":
                 if target is not None:
                     _check_carry_compat(diags, item, nid, target, base)
+                    _check_fold_outputs(diags, item, nid, target, base)
+                _check_zip(diags, item, nid, base)
             elif kind == "do_while":
                 # max_iterations is required (spec 19, requirement 5).
                 if item.get("max_iterations") is None:
@@ -139,7 +290,11 @@ def check_nodes(doc: YMap, diags: Diagnostics, sigs: dict[str, ProcSig]) -> None
                     )
                 if target is not None:
                     _check_carry_compat(diags, item, nid, target, base)
+                    _check_do_while_outputs(diags, item, nid, target, base)
             elif kind == "branch":
-                _check_branch(diags, item, nid, sigs, base)
+                _check_branch(diags, item, nid, sigs, processes, base)
+            elif kind == "map":
+                # map uses zip-equal over its each sources (spec 17).
+                _check_zip(diags, item, nid, base)
             # `map` has no carry/condition; its feature requirement is derived in
             # the feature pass and its Object flow by the target's completeness.

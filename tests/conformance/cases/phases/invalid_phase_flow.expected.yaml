@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "phase-flow (data -> run/graph) not yet validated (spec 6)"
 errors:
   - code: invalid_phase_flow
 notes: "A data-phase value must not flow into a run-phase port (spec 6)."

@@ -22,9 +22,12 @@ import re
 
 from ofplang import errors
 from ofplang.diagnostics import Diagnostics
+from ofplang.objects import ProcSig
 from ofplang.types import (
     ArrayT,
     Atom,
+    BUILTIN_TYPE_NAMES,
+    PRIMITIVE_TYPES,
     TypeEnv,
     TypeExpr,
     TypeParseError,
@@ -64,7 +67,150 @@ def _input_atoms(proc: YMap) -> set[str]:
     return names
 
 
-def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
+def _implements_map(doc: YMap) -> dict[str, set[str]]:
+    """user type name -> set of trait names it declares via `implements`."""
+    out: dict[str, set[str]] = {}
+    types = doc.get("types")
+    if not isinstance(types, YMap):
+        return out
+    for tname in types.keys():
+        decl = types.get(tname)
+        traits: set[str] = set()
+        if isinstance(decl, YMap):
+            impls = decl.get("implements")
+            if isinstance(impls, YSeq):
+                for item in impls.items:
+                    if isinstance(item, YScalar):
+                        traits.add(item.text)
+        out[tname] = traits
+    return out
+
+
+def _unify(pexpr: TypeExpr, sexpr: TypeExpr | None, params: set[str], bindings: dict[str, TypeExpr]) -> None:
+    """Infer type-parameter bindings by structural matching (spec 8.1).
+
+    Only the shapes v0 inference needs: a parameter atom binds to the concrete
+    source type; Array matches Array recursively; concrete-vs-concrete is left
+    alone (mismatches there are ordinary type errors handled elsewhere).
+    """
+    if sexpr is None:
+        return
+    if isinstance(pexpr, Atom) and pexpr.name in params:
+        bindings.setdefault(pexpr.name, sexpr)
+        return
+    if isinstance(pexpr, ArrayT) and isinstance(sexpr, ArrayT):
+        _unify(pexpr.elem, sexpr.elem, params, bindings)
+
+
+def _source_type(ref_text: str, comp_sig: ProcSig, sigs: dict[str, ProcSig], nodes_by_id) -> TypeExpr | None:
+    """Resolve a `from` reference to the concrete type of the value it names."""
+    parts = ref_text.split(".")
+    if len(parts) != 2:
+        return None
+    owner, name = parts
+    if owner == "inputs":
+        port = comp_sig.inputs.get(name)
+        return port.type_expr if port else None
+    node = nodes_by_id.get(owner)
+    if node is None:
+        return None
+    proc = node.get("process")
+    if isinstance(proc, YScalar) and proc.text in sigs:
+        out = sigs[proc.text].outputs.get(name)
+        return out.type_expr if out else None
+    return None
+
+
+def _check_instantiations(
+    doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, ProcSig]
+) -> None:
+    """Infer type arguments at ordinary call sites and check `where` (spec 8.1).
+
+    Scope: ordinary nodes invoking a generic process, with sources whose types
+    we can resolve. This is enough to enforce trait satisfaction on inferred
+    concrete types; broader inference (partial/uninferable) is future work.
+    """
+    processes = doc.get("processes")
+    if not isinstance(processes, YMap):
+        return
+    implements = _implements_map(doc)
+
+    for pname in processes.keys():
+        proc = processes.get(pname)
+        comp_sig = sigs.get(pname)
+        if not isinstance(proc, YMap) or comp_sig is None:
+            continue
+        body = proc.get("body")
+        if not isinstance(body, YMap):
+            continue
+        nodes = body.get("nodes")
+        if not isinstance(nodes, YSeq):
+            continue
+
+        nodes_by_id = {
+            n.get("id").text: n
+            for n in nodes.items
+            if isinstance(n, YMap) and isinstance(n.get("id"), YScalar)
+        }
+
+        for node in nodes.items:
+            if not isinstance(node, YMap) or node.get("kind") is not None:
+                continue  # ordinary nodes only
+            proc_ref = node.get("process")
+            if not isinstance(proc_ref, YScalar):
+                continue
+            target_def = processes.get(proc_ref.text)
+            target_sig = sigs.get(proc_ref.text)
+            if not isinstance(target_def, YMap) or target_sig is None:
+                continue
+            params = set(process_type_params(target_def))
+            if not params:
+                continue  # not a generic process
+
+            # Infer bindings from each bound input port's source value type.
+            bindings: dict[str, TypeExpr] = {}
+            for section in ("state", "bind"):
+                m = node.get(section)
+                if not isinstance(m, YMap):
+                    continue
+                for portname in m.keys():
+                    port = target_sig.inputs.get(portname)
+                    entry = m.get(portname)
+                    if port is None or port.type_expr is None or not isinstance(entry, YMap):
+                        continue
+                    frm = entry.get("from")
+                    if isinstance(frm, YScalar):
+                        src = _source_type(frm.text, comp_sig, sigs, nodes_by_id)
+                        _unify(port.type_expr, src, params, bindings)
+
+            # Check each where-constraint against the inferred concrete type.
+            where = target_def.get("where")
+            if not isinstance(where, YSeq):
+                continue
+            for item in where.items:
+                if not isinstance(item, YScalar):
+                    continue
+                m = _CONSTRAINT_RE.match(item.text)
+                if not m:
+                    continue  # malformed constraint reported at definition
+                trait, param = m.group(1), m.group(2)
+                concrete = bindings.get(param)
+                if not isinstance(concrete, Atom):
+                    continue  # could not infer a concrete atom; skip
+                cname = concrete.name
+                if trait == "Numeric":
+                    satisfied = cname in ("Int", "Float")
+                else:
+                    satisfied = trait in implements.get(cname, set())
+                if not satisfied:
+                    diags.add(
+                        errors.CONSTRAINT_NOT_SATISFIED,
+                        f"{cname} does not satisfy {trait}<{param}>",
+                        f"processes.{pname}.body.nodes.{node.get('id').text}",
+                    )
+
+
+def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv, sigs: dict[str, ProcSig]) -> None:
     processes = doc.get("processes")
     if not isinstance(processes, YMap):
         return
@@ -79,6 +225,16 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
             continue
 
         tp = process_type_params(proc)  # only well-formed 'data'/'object' params
+
+        # A type parameter must not shadow a top-level user type name (spec 2.5),
+        # which would make an atom in a port type ambiguous.
+        for name in tp_node.keys():
+            if name in env.user_types:
+                diags.add(
+                    errors.TYPE_PARAM_SHADOW,
+                    f"type parameter {name!r} shadows a user type",
+                    f"{base}.type_params.{name}",
+                )
 
         # Each declared parameter must have a valid domain (spec 8). A missing or
         # bad domain is reported so the parameter is visibly rejected.
@@ -116,8 +272,16 @@ def check_generics(doc: YMap, diags: Diagnostics, env: TypeEnv) -> None:
                 trait, param = m.group(1), m.group(2)
                 # The constraint must target a declared parameter of this process.
                 if param not in tp:
-                    diags.add(errors.MALFORMED_CONSTRAINT, f"{param!r} is not a type parameter", cpath)
+                    # Distinguish "constrained a concrete type" (a real, if
+                    # disallowed, type name) from arbitrary garbage (spec 8.1).
+                    if param in env.user_types or param in PRIMITIVE_TYPES or param in BUILTIN_TYPE_NAMES:
+                        diags.add(errors.CONSTRAINT_ON_CONCRETE, f"constraint over concrete type {param!r}", cpath)
+                    else:
+                        diags.add(errors.MALFORMED_CONSTRAINT, f"{param!r} is not a type parameter", cpath)
                     continue
                 # The trait must be `Numeric` (built-in) or a declared trait.
                 if trait != "Numeric" and trait not in env.traits:
                     diags.add(errors.UNKNOWN_TRAIT, f"unknown trait {trait!r}", cpath)
+
+    # Call-site instantiation: infer type arguments and check where-constraints.
+    _check_instantiations(doc, diags, env, sigs)

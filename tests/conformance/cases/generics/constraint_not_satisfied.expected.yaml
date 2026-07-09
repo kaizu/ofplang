@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "generic instantiation/where satisfaction at call sites not yet implemented (spec 8.1)"
 errors:
   - code: constraint_not_satisfied
 notes: "Rock does not implement Washable, violating where Washable<O> (spec 8.1)."

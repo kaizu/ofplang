@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "null static value currently reported as generic null_value, not null_static_value (spec 7.4)"
 errors:
   - code: null_static_value
 notes: "null is not a valid static view value (spec 7.4)."

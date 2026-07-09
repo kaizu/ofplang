@@ -133,6 +133,7 @@ def _float_span_end(s: str, i: int, m: re.Match) -> int:
 @dataclass
 class Lit:
     type_name: str  # 'Bool'|'Int'|'Float'|'String'
+    value: object = None  # concrete Python value, for constant folding
 
 
 @dataclass
@@ -236,14 +237,16 @@ class _Parser:
             if close is None or close.kind != "rparen":
                 raise ContractError(errors.CONTRACT_PARSE_ERROR, "missing ')'")
             return expr
+        # Literals retain their concrete value so a fully-constant contract can
+        # be folded at graph time (spec 9.2).
         if t.kind == "num_int":
-            return Lit("Int")
+            return Lit("Int", int(t.text))
         if t.kind == "num_float":
-            return Lit("Float")
+            return Lit("Float", float(t.text))
         if t.kind == "str":
-            return Lit("String")
+            return Lit("String", t.text[1:-1])  # strip quotes (escapes kept literally)
         if t.kind == "kw" and t.text in ("true", "false"):
-            return Lit("Bool")
+            return Lit("Bool", t.text == "true")
         if t.kind == "ref":
             return Ref(t.text.split("."))
         raise ContractError(errors.CONTRACT_PARSE_ERROR, f"unexpected token {t.text!r}")
@@ -375,6 +378,54 @@ def _type_of(node, ctx: ContractCtx) -> str:
     raise ContractError(errors.CONTRACT_TYPE_ERROR, "unrecognized expression")
 
 
+def _has_ref(node) -> bool:
+    """Whether the expression reads any runtime/instance view value."""
+    if isinstance(node, Ref):
+        return True
+    if isinstance(node, Unary):
+        return _has_ref(node.operand)
+    if isinstance(node, Binary):
+        return _has_ref(node.left) or _has_ref(node.right)
+    return False
+
+
+def _eval(node):
+    """Evaluate a fully-constant (Ref-free) expression to a Python value."""
+    if isinstance(node, Lit):
+        return node.value
+    if isinstance(node, Unary):
+        v = _eval(node.operand)
+        return (not v) if node.op == "not" else (-v)
+    if isinstance(node, Binary):
+        a, b = _eval(node.left), _eval(node.right)
+        op = node.op
+        if op == "and":
+            return bool(a) and bool(b)
+        if op == "or":
+            return bool(a) or bool(b)
+        if op == "==":
+            return a == b
+        if op == "!=":
+            return a != b
+        if op == "<":
+            return a < b
+        if op == "<=":
+            return a <= b
+        if op == ">":
+            return a > b
+        if op == ">=":
+            return a >= b
+        if op == "+":
+            return a + b
+        if op == "-":
+            return a - b
+        if op == "*":
+            return a * b
+        if op == "/":
+            return a / b  # ZeroDivisionError caught by caller as a static error
+    raise ContractError(errors.CONTRACT_TYPE_ERROR, "uncomputable constant")
+
+
 def _check_expr(diags: Diagnostics, text: str, ctx: ContractCtx, path: str) -> None:
     try:
         ast = _Parser(_lex(text)).parse()
@@ -382,6 +433,15 @@ def _check_expr(diags: Diagnostics, text: str, ctx: ContractCtx, path: str) -> N
         # A contract must type-check to Bool (spec 9.2).
         if result != "Bool":
             raise ContractError(errors.CONTRACT_TYPE_ERROR, f"contract is {result}, not Bool")
+        # Constant folding: a contract with no runtime references that is
+        # statically false (or hits a static eval error like /0) is invalid at
+        # graph time (spec 9.2). Reference-bearing contracts are runtime checks.
+        if not _has_ref(ast):
+            try:
+                if _eval(ast) is False:
+                    raise ContractError(errors.CONTRACT_STATIC_FALSE, "contract is statically false")
+            except ZeroDivisionError:
+                raise ContractError(errors.CONTRACT_STATIC_FALSE, "static division by zero")
     except ContractError as exc:
         diags.add(exc.code, str(exc), path)
 

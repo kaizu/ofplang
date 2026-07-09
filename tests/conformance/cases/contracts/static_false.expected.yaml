@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "static constant-folding of contracts not yet implemented (spec 9.2)"
 errors:
   - code: contract_static_false
 notes: "A constant contract that evaluates false at graph time is invalid (spec 9.2)."

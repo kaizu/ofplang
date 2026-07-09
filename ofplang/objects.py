@@ -40,10 +40,16 @@ from ofplang.yamlnode import YMap, YScalar, YSeq, YNode
 # --- Per-process signature -------------------------------------------------
 @dataclass
 class PortSig:
-    """A resolved port: its parsed type and whether it is Object-bearing."""
+    """A resolved port: its parsed type, Object-bearing flag, and phase.
+
+    ``phase`` is retained so the reference/graph layer can check phase-flow
+    (a value may only flow to an equal-or-later phase, spec 6) without
+    re-reading the tree.
+    """
 
     type_expr: TypeExpr | None
     object_bearing: bool
+    phase: str | None = None
 
 
 @dataclass
@@ -66,6 +72,7 @@ def _port_sigs(ports: YNode | None, env: TypeEnv, tp: dict[str, str]) -> dict[st
         port = ports.get(name)
         expr = None
         ob = False
+        phase = None
         if isinstance(port, YMap):
             tnode = port.get("type")
             if isinstance(tnode, YScalar) and tnode.is_str:
@@ -74,7 +81,10 @@ def _port_sigs(ports: YNode | None, env: TypeEnv, tp: dict[str, str]) -> dict[st
                     ob = is_object_bearing(expr, env, tp)
                 except TypeParseError:
                     expr = None
-        out[name] = PortSig(type_expr=expr, object_bearing=ob)
+            pnode = port.get("phase")
+            if isinstance(pnode, YScalar) and not pnode.is_null:
+                phase = pnode.text
+        out[name] = PortSig(type_expr=expr, object_bearing=ob, phase=phase)
     return out
 
 

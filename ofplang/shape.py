@@ -88,7 +88,14 @@ def _scan_nulls(diags: Diagnostics, node: YNode, base: str) -> None:
     """
     if isinstance(node, YScalar):
         if node.is_null:
-            diags.add(errors.NULL_VALUE, "null is not a valid v0 value", base)
+            # A null in a view field's static `value` position gets the specific
+            # code (spec 7.4); every other null is the generic error (spec 2.3).
+            # Path-based classification keeps this universal scan single-pass
+            # without threading view context through the recursion.
+            if ".view." in base and base.endswith(".value"):
+                diags.add(errors.NULL_STATIC_VALUE, "null is not a valid static view value", base)
+            else:
+                diags.add(errors.NULL_VALUE, "null is not a valid v0 value", base)
         return
     if isinstance(node, YSeq):
         for i, item in enumerate(node.items):

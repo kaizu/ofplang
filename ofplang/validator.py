@@ -99,6 +99,7 @@ def validate(
     from ofplang import nodes as nodes_pass
     from ofplang import contracts as contracts_pass
     from ofplang import scheduling as scheduling_pass
+    from ofplang import references as references_pass
     from ofplang.objects import build_signatures
     from ofplang.types import build_env
 
@@ -128,20 +129,24 @@ def validate(
     # skip them rather than risk cascading noise.
     if isinstance(root, YMap):
         env = build_env(root)
+        # Signatures are built once and shared by the graph-level passes.
+        sigs = build_signatures(root, env)
         typecheck_pass.check_types(root, diags, env)
         traits_pass.check_traits(root, diags, env)
         views_pass.check_views(root, diags, env)
         phases_pass.check_phases(root, diags, env)
         features_pass.check_features(root, diags, mode)
         objects_pass.check_objects(root, diags, env)
-        generics_pass.check_generics(root, diags, env)
+        generics_pass.check_generics(root, diags, env, sigs)
         script_pass.check_scripts(root, diags, env)
-        nodes_pass.check_nodes(root, diags, build_signatures(root, env))
+        nodes_pass.check_nodes(root, diags, sigs)
+        references_pass.check_references(root, diags, sigs)
         contracts_pass.check_contracts(root, diags, env)
-        scheduling_pass.check_scheduling(root, diags, mode)
+        scheduling_pass.check_scheduling(root, diags, mode, sigs)
 
-    # Entry process resolution.
+    # Entry process resolution and process-dependency acyclicity.
     entry_pass.check_entry(root, diags)
+    entry_pass.check_process_dependencies(root, diags)
 
     return diags.result()
 

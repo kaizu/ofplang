@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "type parameter shadowing a user type name not yet detected (spec 2.5)"
 errors:
   - code: type_param_shadow
 notes: "Type parameter 'Sample' shadows a top-level user type (spec 2.5)."

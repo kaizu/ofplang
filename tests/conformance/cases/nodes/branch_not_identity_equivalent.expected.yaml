@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "branch Object identity-equivalence across arms not yet validated (spec 20.2)"
 errors:
   - code: branch_not_identity_equivalent
 notes: "Both arms independently consume+create cup, so identity depends on the arm (spec 20.2)."

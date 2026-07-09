@@ -1,5 +1,4 @@
 outcome: invalid
-pending: "graph-phase empty-traversal analysis for mode: last not yet implemented (spec 18.2)"
 errors:
   - code: last_on_empty_fold
 notes: "mode: last on an each known-empty at graph phase is invalid (spec 18.2)."
