@@ -1,0 +1,23 @@
+spec_version: "0.0"
+processes:
+  emit:
+    kind: atomic
+    inputs: {}
+    outputs:
+      out:
+        type: Int
+        phase: data
+  main:
+    kind: composite
+    outputs:
+      r:
+        type: Int
+        phase: data
+    body:
+      nodes:
+        - id: e
+          process: emit
+      returns:
+        r:
+          from: e.missing
+entry: main

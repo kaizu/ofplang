@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "node Object input source presence not yet validated (spec 12.2)"
+errors:
+  - code: object_input_no_source
+notes: "Object input 'cup' has no source (spec 12.2)."

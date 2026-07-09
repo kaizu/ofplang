@@ -19,6 +19,10 @@ Expected-outcome schema (``*.expected.yaml`` / ``expected.yaml``)::
     errors:                 # required iff outcome == invalid
       - code: unknown_key   # required; must be a member of ofplang.errors.ERROR_CODES
         path: "..."         # optional location hint (not matched by default)
+    pending: "reason"       # optional: this case documents behavior the validator
+                            #   does not satisfy yet (spec area not implemented, or a
+                            #   known false positive). Marked xfail so the suite stays
+                            #   green until the behavior lands; remove `pending` then.
     notes: "..."            # optional free-text rationale
 """
 
@@ -53,6 +57,7 @@ class Case:
     outcome: str
     match: str
     expected_codes: tuple[str, ...]
+    pending: str  # non-empty when this case is a known-not-yet-satisfied target
     notes: str
 
 
@@ -73,7 +78,7 @@ def _load_expected(expected_path: Path, case_id: str) -> dict:
 def _build_case(case_id: str, root_doc: Path, expected_path: Path) -> Case:
     data = _load_expected(expected_path, case_id)
 
-    unknown = set(data) - {"mode", "outcome", "match", "errors", "notes"}
+    unknown = set(data) - {"mode", "outcome", "match", "errors", "pending", "notes"}
     if unknown:
         raise CaseError(f"[{case_id}] unknown expected keys: {sorted(unknown)}")
 
@@ -117,6 +122,7 @@ def _build_case(case_id: str, root_doc: Path, expected_path: Path) -> Case:
         outcome=outcome,
         match=match,
         expected_codes=tuple(codes),
+        pending=str(data.get("pending", "")),
         notes=str(data.get("notes", "")),
     )
 

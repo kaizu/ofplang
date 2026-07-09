@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "temporal reference resolution (start/end, known node) not yet validated (spec 23.1)"
+errors:
+  - code: bad_temporal_ref
+notes: "'collect.middle' is not a valid temporal reference; only .start/.end (spec 23.1)."

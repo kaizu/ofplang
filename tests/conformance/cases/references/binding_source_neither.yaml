@@ -1,0 +1,19 @@
+spec_version: "0.0"
+processes:
+  sink:
+    kind: atomic
+    inputs:
+      x:
+        type: Int
+        phase: data
+    outputs: {}
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: s
+          process: sink
+          bind:
+            x: {}
+      returns: {}
+entry: main

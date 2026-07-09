@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: type_field_not_string
+notes: "A type field must be a YAML string scalar (spec 2.5)."

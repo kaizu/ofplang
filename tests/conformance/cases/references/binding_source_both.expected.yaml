@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "binding source arity (exactly one of from/value) not yet validated (spec 2.6.6)"
+errors:
+  - code: binding_source_arity
+notes: "A binding source must contain exactly one of from/value (spec 2.6.6)."

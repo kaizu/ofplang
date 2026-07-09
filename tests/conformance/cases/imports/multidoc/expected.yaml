@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: multidoc_import
+notes: "An import target must be a single YAML document (spec 3.4)."

@@ -1,0 +1,24 @@
+spec_version: "0.0"
+processes:
+  a:
+    kind: composite
+    body:
+      nodes:
+        - id: n
+          process: b
+      returns: {}
+  b:
+    kind: composite
+    body:
+      nodes:
+        - id: n
+          process: a
+      returns: {}
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: n
+          process: a
+      returns: {}
+entry: main

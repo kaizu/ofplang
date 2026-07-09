@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: multiple_provenances
+notes: "output x has both a map-target and create provenance (spec 13.1)."

@@ -1,0 +1,2 @@
+outcome: valid
+notes: "consume + same-name create is valid Object replacement (spec 13.2)."

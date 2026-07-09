@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "do_while condition.output must be a Boolean output; not yet validated (spec 19)"
+errors:
+  - code: bad_condition_output
+notes: "condition.output 'status' is Int, not Bool (spec 19)."

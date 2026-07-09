@@ -1,0 +1,26 @@
+spec_version: "0.0"
+features:
+  - python_script_processes
+processes:
+  bad:
+    kind: atomic
+    inputs:
+      x:
+        type: Float
+        phase: data
+    outputs:
+      z:
+        type: Float
+        phase: data
+    objects:
+      map:
+        outputs.z: inputs.x
+    script:
+      language: python
+      code: |
+        return {"z": x}
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

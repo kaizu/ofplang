@@ -1,0 +1,3 @@
+mode: extension-tolerant
+outcome: valid
+notes: "x- extension feature names are accepted in extension-tolerant mode (spec 26)."

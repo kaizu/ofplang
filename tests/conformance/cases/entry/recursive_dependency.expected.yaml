@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "process-dependency acyclicity not yet validated (spec 10.2)"
+errors:
+  - code: recursive_process_dependency
+notes: "a -> b -> a is a recursive composite dependency (spec 10.2)."

@@ -1,0 +1,5 @@
+outcome: invalid
+errors:
+  - code: wrong_value_kind
+    path: "processes.main.inputs.x.phase"
+notes: "'runtime' is not a valid phase word (spec 6)."

@@ -1,0 +1,25 @@
+spec_version: "0.0"
+features:
+  - scheduling_policies
+processes:
+  collect:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: collect
+          process: collect
+      returns: {}
+    scheduling:
+      policies:
+        - during:
+            from: collect.middle
+            to: self.end
+          prefer:
+            kind: max_gap
+            value: 5
+            unit: min
+entry: main

@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "reference target existence is not yet validated (spec 2.6)"
+errors:
+  - code: unknown_reference
+notes: "'ghost.out' names no node/input in scope (spec 2.6)."

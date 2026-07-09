@@ -1,0 +1,17 @@
+spec_version: "0.0"
+processes:
+  need_x:
+    kind: atomic
+    inputs:
+      x:
+        type: Int
+        phase: data
+    outputs: {}
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: n
+          process: need_x
+      returns: {}
+entry: main

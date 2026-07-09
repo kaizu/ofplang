@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: non_string_import_path
+notes: "$import value must be a string or list of strings (spec 3.4)."

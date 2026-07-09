@@ -1,0 +1,2 @@
+outcome: valid
+notes: "Int/Float mixed arithmetic promotes to Float in contracts (spec 9.2)."

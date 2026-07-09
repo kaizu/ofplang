@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: contract_parse_error
+notes: "Incomplete expression is a parse error (spec 9.2)."

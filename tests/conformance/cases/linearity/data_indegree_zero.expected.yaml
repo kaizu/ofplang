@@ -1,0 +1,5 @@
+outcome: invalid
+pending: "node input binding presence (data indegree) not yet validated (spec 12.1)"
+errors:
+  - code: data_indegree
+notes: "Pure Data input 'x' has no source; indegree must be 1 (spec 12.1)."

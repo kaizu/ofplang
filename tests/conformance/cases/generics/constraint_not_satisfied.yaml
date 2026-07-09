@@ -1,0 +1,54 @@
+spec_version: "0.0"
+traits:
+  Washable: {}
+types:
+  Rock:
+    domain: object
+processes:
+  wash:
+    kind: atomic
+    type_params:
+      O:
+        domain: object
+    where:
+      - Washable<O>
+    inputs:
+      item:
+        type: O
+        phase: data
+    outputs:
+      item:
+        type: O
+        phase: data
+    objects:
+      map:
+        outputs.item: inputs.item
+  make_rock:
+    kind: atomic
+    inputs: {}
+    outputs:
+      item:
+        type: Rock
+        phase: data
+    objects:
+      create:
+        - outputs.item
+  main:
+    kind: composite
+    body:
+      nodes:
+        - id: mk
+          process: make_rock
+        - id: w
+          process: wash
+          state:
+            item:
+              from: mk.item
+      returns:
+        item:
+          from: w.item
+    outputs:
+      item:
+        type: Rock
+        phase: data
+entry: main

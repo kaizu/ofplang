@@ -1,0 +1,9 @@
+spec_version: "0.0"
+types:
+  $import: ./seq.yaml
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

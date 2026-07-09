@@ -1,0 +1,22 @@
+spec_version: "0.0"
+types:
+  Cup:
+    domain: object
+processes:
+  inspect:
+    kind: atomic
+    traits:
+      - elidable_iso
+    inputs:
+      cup:
+        type: Cup
+        phase: data
+    outputs:
+      cup:
+        type: Cup
+        phase: data
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

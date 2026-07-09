@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: invalid_import_shape
+notes: "A mapping-position import must expand to a mapping (spec 3.2)."

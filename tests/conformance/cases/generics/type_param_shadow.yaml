@@ -1,0 +1,26 @@
+spec_version: "0.0"
+types:
+  Sample:
+    domain: object
+processes:
+  gen:
+    kind: atomic
+    type_params:
+      Sample:
+        domain: object
+    inputs:
+      item:
+        type: Sample
+        phase: data
+    outputs:
+      item:
+        type: Sample
+        phase: data
+    objects:
+      map:
+        outputs.item: inputs.item
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

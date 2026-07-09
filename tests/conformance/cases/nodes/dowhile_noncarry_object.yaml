@@ -1,0 +1,49 @@
+spec_version: "0.0"
+features:
+  - node_do_while
+types:
+  Cup:
+    domain: object
+processes:
+  step:
+    kind: atomic
+    inputs:
+      n:
+        type: Int
+        phase: data
+    outputs:
+      n:
+        type: Int
+        phase: data
+      cup:
+        type: Cup
+        phase: data
+      continue:
+        type: Bool
+        phase: data
+    objects:
+      create:
+        - outputs.cup
+  main:
+    kind: composite
+    inputs:
+      n0:
+        type: Int
+        phase: data
+    body:
+      nodes:
+        - id: loop
+          kind: do_while
+          process: step
+          carry:
+            n:
+              from: inputs.n0
+          condition:
+            output: continue
+          max_iterations:
+            value: 10
+          outputs:
+            n:
+              mode: carry
+      returns: {}
+entry: main

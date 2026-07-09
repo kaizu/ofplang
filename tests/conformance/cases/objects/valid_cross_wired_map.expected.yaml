@@ -1,0 +1,2 @@
+outcome: valid
+notes: "Cross-wired identity map; every slot has exactly one fate/provenance (spec 14.1)."

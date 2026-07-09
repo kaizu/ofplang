@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: script_has_objects
+notes: "A script process must not declare an objects section (spec 22.1)."

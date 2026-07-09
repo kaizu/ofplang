@@ -57,8 +57,21 @@ match: exact            # optional: exact | superset (default: exact)
 errors:                 # required iff outcome == invalid
   - code: unknown_type  # required; must exist in ofplang/errors.py
     path: "processes.x" # optional location hint (not matched by default)
+pending: "reason"       # optional: see below
 notes: "why this is invalid, quoting the spec clause"   # optional
 ```
+
+### Pending cases (tests ahead of implementation)
+
+A case may carry `pending: "<reason>"` to document behavior the validator does
+**not satisfy yet** — a spec area not implemented, or a known false positive.
+Such a case is marked `xfail` (non-strict, so an unexpected pass shows as
+`XPASS`) in **both** default and strict runs, keeping the suite green while the
+test is committed ahead of its implementation. When the behavior lands, delete
+the `pending` line and the case becomes a hard requirement.
+
+This is how coverage is expanded spec-first: add the case with `pending`, then
+remove `pending` in the change that implements it.
 
 - **`match: exact`** (default): the set of produced error codes must equal the
   set of expected codes. Use for minimal single-violation cases — this is what

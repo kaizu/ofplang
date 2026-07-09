@@ -55,6 +55,7 @@ IMPLEMENTED_CATEGORIES = {
     "nodes",
     "contracts",
     "scheduling",
+    "references",
 }
 
 
@@ -101,7 +102,16 @@ def _assert_outcome(case: Case, result) -> None:
 
 
 @pytest.mark.parametrize("case", _CASES, ids=lambda c: c.id)
-def test_conformance(case: Case) -> None:
+def test_conformance(case: Case, request: pytest.FixtureRequest) -> None:
+    # `pending` cases document behavior the validator does not satisfy yet
+    # (unimplemented spec areas, or known false positives). Mark them xfail
+    # (non-strict, so an unexpected pass shows up as XPASS) so the suite stays
+    # green while these tests are added ahead of implementation. Remove the
+    # `pending` field from a case's expected file once the behavior lands.
+    if case.pending:
+        request.node.add_marker(
+            pytest.mark.xfail(reason=f"pending: {case.pending}", strict=False)
+        )
     result = _run(case)
     _assert_outcome(case, result)
 

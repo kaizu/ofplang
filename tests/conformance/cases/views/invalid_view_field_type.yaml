@@ -1,0 +1,15 @@
+spec_version: "0.0"
+types:
+  Meta:
+    domain: data
+  Thing:
+    domain: object
+    view:
+      meta:
+        type: Meta
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

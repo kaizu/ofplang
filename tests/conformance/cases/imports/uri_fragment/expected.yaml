@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: uri_fragment_import
+notes: "URI fragments are not defined for portable v0 imports (spec 3.4)."

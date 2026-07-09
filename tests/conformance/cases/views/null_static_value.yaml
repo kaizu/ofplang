@@ -1,0 +1,14 @@
+spec_version: "0.0"
+types:
+  Plate96:
+    domain: object
+    view:
+      well_count:
+        type: Int
+        value: null
+processes:
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

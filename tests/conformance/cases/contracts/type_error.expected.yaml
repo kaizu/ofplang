@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: contract_type_error
+notes: "'and' requires Bool operands but got Int (spec 9.2)."

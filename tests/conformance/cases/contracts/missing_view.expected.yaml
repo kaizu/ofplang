@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: contract_invalid_reference
+notes: "Contract references must explicitly include .view (spec 9.2)."

@@ -1,0 +1,25 @@
+spec_version: "0.0"
+types:
+  Cup:
+    domain: object
+processes:
+  bad:
+    kind: atomic
+    inputs:
+      a:
+        type: Cup
+        phase: data
+    outputs:
+      x:
+        type: Cup
+        phase: data
+    objects:
+      map:
+        outputs.x: inputs.a
+      create:
+        - outputs.x
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: unreadable_import
+notes: "A missing import target cannot be read (spec 3.4)."

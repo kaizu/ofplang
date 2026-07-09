@@ -1,0 +1,32 @@
+spec_version: "0.0"
+traits:
+  PlateLike: {}
+types:
+  Plate96:
+    domain: object
+    implements:
+      - PlateLike
+processes:
+  seal:
+    kind: atomic
+    type_params:
+      P:
+        domain: object
+    where:
+      - PlateLike<Plate96>
+    inputs:
+      plate:
+        type: P
+        phase: data
+    outputs:
+      plate:
+        type: P
+        phase: data
+    objects:
+      map:
+        outputs.plate: inputs.plate
+  main:
+    kind: atomic
+    inputs: {}
+    outputs: {}
+entry: main

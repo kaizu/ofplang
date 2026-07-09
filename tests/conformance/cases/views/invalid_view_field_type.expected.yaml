@@ -1,0 +1,4 @@
+outcome: invalid
+errors:
+  - code: invalid_view_field_type
+notes: "A user-defined nominal Data type is not a valid view field type (spec 7.4)."
