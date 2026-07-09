@@ -12,6 +12,9 @@ dependencies = ["PyYAML>=6.0"]
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
 
+[project.scripts]
+ofplang = "ofplang.cli:main"
+
 [tool.setuptools]
 packages = ["ofplang"]
 
